@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"TaipeiCityDashboardBE/global"
 	"TaipeiCityDashboardBE/logs"
@@ -61,7 +62,7 @@ func ConnectToDatabases(dbNames ...interface{}) {
 func ConnectToDatabase(dbConfig global.DatabaseConfig) *gorm.DB {
 	// Constructing the database connection string using database configuration
 	dbargs := fmt.Sprintf(
-		"host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
+		"host=%s port=%s user=%s dbname=%s password=%s sslmode=require connect_timeout=10",
 		dbConfig.Host,
 		dbConfig.Port,
 		dbConfig.User,
@@ -73,9 +74,21 @@ func ConnectToDatabase(dbConfig global.DatabaseConfig) *gorm.DB {
 	dbConn, err := gorm.Open(postgres.Open(dbargs), &gorm.Config{})
 	if err != nil {
 		// Log an error and panic if there is an issue connecting to the database
-		logs.FError("Error connecting to %s database", dbConfig.Host)
+		logs.FError("Error connecting to %s database: %v", dbConfig.Host, err)
 		panic("Connecting to database error")
 	}
+
+	// Configure connection pool
+	sqlDB, err := dbConn.DB()
+	if err != nil {
+		logs.FError("Error getting database connection: %v", err)
+		panic("Getting database connection error")
+	}
+
+	// Set connection pool parameters
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetConnMaxLifetime(time.Hour)
 
 	// Log a success message if the connection is established successfully
 	logs.FInfo("%s database connected", dbConfig.Host)
