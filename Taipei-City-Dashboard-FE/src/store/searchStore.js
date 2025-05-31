@@ -1,12 +1,18 @@
 import { defineStore } from "pinia";
+import http from "../router/axios";
+import { useContentStore } from "./contentStore";
 
 export const useSearchStore = defineStore("search", {
 	state: () => ({
+		// All topics
+		allTopics: [],
+		// All source
+		allSource: [],
 		// Search keyword
 		searchKeyword: "",
 		// Loading state
 		isSearching: false,
-		// Selected topic indexes
+		// Selected topic names (strings)
 		selectedTopics: [],
 		// Selected department names  
 		selectedDepartments: [],
@@ -31,18 +37,45 @@ export const useSearchStore = defineStore("search", {
 	},
 	
 	actions: {
+		/* Utility functions to access loading and error states in contentStore */
+		setLoading(state) {
+			const contentStore = useContentStore();
+			contentStore.loading = state ? true : false;
+		},
+		async setupAllSource() {
+			const response = await http.get(`/component/`);
+			const sources = response.data.data.map(item => item.source).filter(Boolean);
+			this.allSource = [...new Set(sources)];
+		},
+		setupAllTopics() {
+			const contentStore = useContentStore();
+			if (!contentStore.dashboards || contentStore.dashboards.size === 0) {
+				return;
+			}
+			
+			const allTopicNames = new Set();
+			Array.from(contentStore.dashboards.values()).forEach((dashboards) => {
+				dashboards.forEach(dashboard => {
+					if (dashboard.name) {
+						allTopicNames.add(dashboard.name);
+					}
+				});
+			});
+			this.allTopics = [...allTopicNames];
+		},
+
 		// Set search keyword
 		setSearchKeyword(keyword) {
 			this.searchKeyword = keyword;
 		},
 		
-		// Toggle topic selection by index
-		toggleTopic(topicIndex) {
-			const index = this.selectedTopics.indexOf(topicIndex);
+		// Toggle topic selection by name
+		toggleTopic(topicName) {
+			const index = this.selectedTopics.indexOf(topicName);
 			if (index > -1) {
 				this.selectedTopics.splice(index, 1);
 			} else {
-				this.selectedTopics.push(topicIndex);
+				this.selectedTopics.push(topicName);
 			}
 		},
 		
@@ -67,7 +100,7 @@ export const useSearchStore = defineStore("search", {
 		// Remove selected item
 		removeSelectedItem(item) {
 			if (item.type === "topic") {
-				const index = this.selectedTopics.indexOf(item.id);
+				const index = this.selectedTopics.indexOf(item.name);
 				if (index > -1) {
 					this.selectedTopics.splice(index, 1);
 				}
@@ -85,24 +118,6 @@ export const useSearchStore = defineStore("search", {
 			this.selectedDepartments = [];
 			this.selectedCity = "";
 			this.searchKeyword = "";
-		},
-		
-		// Perform search
-		async performSearch() {
-			this.isSearching = true;
-			
-			try {
-				// 模擬搜尋延遲
-				await new Promise(resolve => setTimeout(resolve, 500));
-				
-				// 實際的搜尋邏輯會在 SearchResultView 中的 computed 中處理
-				// 這裡只是設定搜尋狀態
-				
-			} catch (error) {
-				console.error("Search error:", error);
-			} finally {
-				this.isSearching = false;
-			}
 		},
 	}
 }); 

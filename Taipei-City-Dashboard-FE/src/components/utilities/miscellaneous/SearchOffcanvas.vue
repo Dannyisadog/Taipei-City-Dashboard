@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useSearchStore } from "../../../store/searchStore";
 import { useContentStore } from "../../../store/contentStore";
@@ -11,7 +11,7 @@ const contentStore = useContentStore();
 
 // Local state for filters (separate from store)
 const localSelectedCity = ref("");
-const localSelectedTopics = ref([]);
+const localSelectedTopics = ref([]); // topic names
 const localSelectedDepartments = ref([]);
 
 // Initialize local state from store when component is created
@@ -27,25 +27,13 @@ initializeLocalState();
 const selectedItems = computed(() => {
 	const items = [];
 	
-	// Add selected topics - need to get name from dashboard index
-	if (!localSelectedCity.value) {
-		return items;
-	}
-	
-	const cityDashboards = contentStore.getDashboardsByCity(localSelectedCity.value);
-	if (!cityDashboards) {
-		return items;
-	}
-	
-	localSelectedTopics.value.forEach(topicIndex => {
-		const dashboard = cityDashboards.find(d => d.index === topicIndex);
-		if (dashboard) {
-			items.push({ 
-				type: "topic", 
-				id: topicIndex, 
-				name: dashboard.name 
-			});
-		}
+	// Add selected topics (now using names directly)
+	localSelectedTopics.value.forEach(topicName => {
+		items.push({ 
+			type: "topic", 
+			id: topicName, 
+			name: topicName 
+		});
 	});
 	
 	// Add selected departments
@@ -68,43 +56,57 @@ const cityOptions = computed(() => {
 });
 
 const topicTags = computed(() => {
+	const allTopics = searchStore.allTopics || [];
+
 	if (!localSelectedCity.value) {
-		return [];
+		return allTopics.map(topicName => ({
+			name: topicName,
+			disabled: true
+		}));
 	}
 	
 	const cityDashboards = contentStore.getDashboardsByCity(localSelectedCity.value);
-	if (!Array.isArray(cityDashboards)) {
-		return [];
+	
+	const availableTopics = new Set();
+	if (Array.isArray(cityDashboards)) {
+		cityDashboards.forEach(dashboard => {
+			if (dashboard.name) {
+				availableTopics.add(dashboard.name);
+			}
+		});
 	}
 	
-	return cityDashboards.map(dashboard => ({
-		index: dashboard.index,
-		name: dashboard.name
+	return allTopics.map(topicName => ({
+		name: topicName,
+		disabled: !availableTopics.has(topicName)
 	}));
 });
 
 const departmentTags = computed(() => {
+	const allSources = searchStore.allSource || [];
+	
 	if (!localSelectedCity.value) {
-		return [];
+		return allSources.map(source => ({
+			name: source,
+			disabled: true
+		}));
 	}
 	
-	if (!contentStore.cityDashboard.components || !Array.isArray(contentStore.cityDashboard.components)) {
-		return [];
+	// 取得該城市的可用部門
+	const availableSources = new Set();
+	if (contentStore.cityDashboard.components && Array.isArray(contentStore.cityDashboard.components)) {
+		contentStore.cityDashboard.components.forEach(component => {
+			if (component.source && (!component.city || component.city === localSelectedCity.value)) {
+				availableSources.add(component.source);
+			}
+		});
 	}
 	
-	const uniqueSources = new Set();
-	contentStore.cityDashboard.components.forEach(component => {
-		if (!component.source) {
-			return;
-		}
-		
-		// 根據城市過濾組件
-		if (!component.city || component.city === localSelectedCity.value) {
-			uniqueSources.add(component.source);
-		}
-	});
-	
-	return Array.from(uniqueSources);
+	// 返回所有部門，標記是否可用
+	return allSources.map(source => ({
+		name: source,
+		disabled: !availableSources.has(source)
+	}));
 });
 
 const handleClose = () => {
@@ -113,12 +115,12 @@ const handleClose = () => {
 	initializeLocalState();
 };
 
-const toggleTopic = (topicIndex) => {
-	const index = localSelectedTopics.value.indexOf(topicIndex);
+const toggleTopic = (topicName) => {
+	const index = localSelectedTopics.value.indexOf(topicName);
 	if (index > -1) {
 		localSelectedTopics.value.splice(index, 1);
 	} else {
-		localSelectedTopics.value.push(topicIndex);
+		localSelectedTopics.value.push(topicName);
 	}
 };
 
@@ -133,7 +135,6 @@ const toggleDepartment = (departmentName) => {
 
 const handleCityChange = (event) => {
 	localSelectedCity.value = event.target.value;
-	// Clear local selections when city changes
 	localSelectedTopics.value = [];
 	localSelectedDepartments.value = [];
 };
@@ -159,22 +160,24 @@ const clearAllFilters = () => {
 };
 
 const syncToStore = () => {
-	// Sync local state to store
 	searchStore.setSelectedCity(localSelectedCity.value);
 	searchStore.selectedTopics = [...localSelectedTopics.value];
 	searchStore.selectedDepartments = [...localSelectedDepartments.value];
 };
 
 const startSearch = () => {
-	// Sync local state to store before searching
 	syncToStore();
-	searchStore.performSearch();
 	searchStore.searchOffcanvas = false;
 	router.push("/search-result");
 };
 
-const isTopicSelected = (topicIndex) => localSelectedTopics.value.includes(topicIndex);
+const isTopicSelected = (topicName) => localSelectedTopics.value.includes(topicName);
 const isDepartmentSelected = (departmentName) => localSelectedDepartments.value.includes(departmentName);
+
+onMounted(async () => {
+	await searchStore.setupAllSource();
+	searchStore.setupAllTopics();
+});
 </script>
 
 <template>
@@ -257,7 +260,6 @@ const isDepartmentSelected = (departmentName) => localSelectedDepartments.value.
 
           <!-- Category Tags -->
           <div 
-            v-if="topicTags.length > 0"
             class="filter-section"
           >
             <div class="filter-title">
@@ -268,9 +270,13 @@ const isDepartmentSelected = (departmentName) => localSelectedDepartments.value.
             <div class="tag-group">
               <button
                 v-for="topic in topicTags"
-                :key="topic.index"
-                :class="['filter-tag', { selected: isTopicSelected(topic.index) }]"
-                @click="toggleTopic(topic.index)"
+                :key="topic.name"
+                :class="['filter-tag', { 
+                  selected: isTopicSelected(topic.name), 
+                  disabled: topic.disabled 
+                }]"
+                :disabled="topic.disabled"
+                @click="!topic.disabled && toggleTopic(topic.name)"
               >
                 {{ topic.name }}
               </button>
@@ -279,7 +285,6 @@ const isDepartmentSelected = (departmentName) => localSelectedDepartments.value.
 
           <!-- Department Tags -->
           <div 
-            v-if="departmentTags.length > 0"
             class="filter-section"
           >
             <div class="filter-title">
@@ -289,12 +294,16 @@ const isDepartmentSelected = (departmentName) => localSelectedDepartments.value.
 			
             <div class="tag-group">
               <button
-                v-for="departmentName in departmentTags"
-                :key="departmentName"
-                :class="['filter-tag', { selected: isDepartmentSelected(departmentName) }]"
-                @click="toggleDepartment(departmentName)"
+                v-for="department in departmentTags"
+                :key="department.name"
+                :class="['filter-tag', { 
+                  selected: isDepartmentSelected(department.name), 
+                  disabled: department.disabled 
+                }]"
+                :disabled="department.disabled"
+                @click="!department.disabled && toggleDepartment(department.name)"
               >
-                {{ departmentName }}
+                {{ department.name }}
               </button>
             </div>
           </div>
@@ -570,9 +579,22 @@ const isDepartmentSelected = (departmentName) => localSelectedDepartments.value.
 		color: var(--color-normal-text);
 	}
 
-	&:hover {
+	&:hover:not(.disabled) {
 		background-color: var(--color-highlight);
 		color: var(--color-normal-text);
+	}
+
+	&.disabled {
+		border-color: var(--color-border);
+		color: var(--color-border);
+		cursor: not-allowed;
+		opacity: 0.5;
+
+		&:hover {
+			border-color: var(--color-border);
+			color: var(--color-border);
+			background-color: transparent;
+		}
 	}
 }
 

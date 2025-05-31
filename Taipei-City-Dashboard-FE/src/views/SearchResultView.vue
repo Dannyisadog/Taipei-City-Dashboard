@@ -44,15 +44,17 @@ const searchResults = computed(() => {
 		}
 		
 		if (params.topics.length > 0) {
-			const cityDashboards = contentStore.getDashboardsByCity(searchStore.selectedCity);
+			// 從 dashboards Map 中獲取該城市的 dashboards
+			const cityDashboards = contentStore.dashboards.get(searchStore.selectedCity);
 			
 			if (!cityDashboards || !Array.isArray(cityDashboards)) {
 				return false;
 			}
 			
 			const selectedComponentIds = new Set();
-			params.topics.forEach(topicIndex => {
-				const dashboard = cityDashboards.find(d => d.index === topicIndex);
+			params.topics.forEach(topicName => {
+				// 根據 name 找到對應的 dashboard
+				const dashboard = cityDashboards.find(d => d.name === topicName);
 				if (dashboard && dashboard.components) {
 					dashboard.components.forEach(componentId => {
 						selectedComponentIds.add(componentId);
@@ -133,7 +135,7 @@ onBeforeMount(() => {
 
     <!-- Results -->
     <div 
-      v-if="searchResults.length > 0"
+      v-show="searchResults.length > 0"
       class="dashboard"
     >
       <DashboardComponent
@@ -178,7 +180,7 @@ onBeforeMount(() => {
 
     <!-- No Results -->
     <div 
-      v-else
+      v-show="searchResults.length === 0"
       class="dashboard dashboard-nodashboard"
     >
       <div class="dashboard-nodashboard-content">
