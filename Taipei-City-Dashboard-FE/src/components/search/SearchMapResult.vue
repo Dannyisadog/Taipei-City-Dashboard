@@ -183,11 +183,10 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .search-map-result {
-  height: calc(100vh - 200px);
-  height: calc(var(--vh) * 100 - 200px);
-  width: calc(100% - var(--font-m) * 2);
-  margin: var(--font-m);
+  height: 100%;
+  width: 100%;
   position: relative;
   box-sizing: border-box;
+  padding: var(--font-m);
 }
 </style>

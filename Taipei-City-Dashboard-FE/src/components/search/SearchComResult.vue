@@ -96,7 +96,7 @@ function handleMoreInfo(item) {
 </script>
 
 <template>
-  <div>
+  <div class="search-com-result">
     <!-- 1. Filtered Components -->
     <div 
       v-if="filteredComponents?.length !== 0"
@@ -182,6 +182,13 @@ function handleMoreInfo(item) {
 </template>
 
 <style scoped lang="scss">
+.search-com-result {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 .start-search-btn {
 	background-color: var(--color-highlight);
 	color: var(--color-normal-text);
@@ -195,13 +202,13 @@ function handleMoreInfo(item) {
 }
 
 .dashboard {
-	max-height: calc(100vh - 127px);
-	max-height: calc(var(--vh) * 100 - 127px);
+	height: 100%;
 	display: grid;
 	row-gap: var(--font-s);
 	column-gap: var(--font-s);
-	margin: var(--font-m) var(--font-m);
-	overflow-y: scroll;
+	padding: var(--font-m);
+	overflow-y: auto;
+	box-sizing: border-box;
 
 	@media (min-width: 720px) {
 		grid-template-columns: 1fr 1fr;
@@ -224,8 +231,7 @@ function handleMoreInfo(item) {
 
 		&-content {
 			width: 100%;
-			height: calc(100vh - 127px);
-			height: calc(var(--vh) * 100 - 127px);
+			height: 100%;
 			display: flex;
 			flex-direction: column;
 			align-items: center;

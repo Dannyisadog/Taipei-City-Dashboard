@@ -80,6 +80,12 @@ function switchTab(tab) {
 
 <style scoped lang="scss">
 .search-result {
+  height: 100vh;
+  height: calc(var(--vh) * 100);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
   &-header {
 	min-height: 1.6rem;
     display: flex;
@@ -88,6 +94,7 @@ function switchTab(tab) {
     padding-bottom: 0.5rem;
     border-bottom: solid 1px var(--color-border);
     user-select: none;
+    flex-shrink: 0;
   }
 
   &-nav {
@@ -129,6 +136,7 @@ function switchTab(tab) {
   display: flex;
   margin: 0 var(--font-m);
   border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
 
 .tab-btn {
@@ -166,6 +174,7 @@ function switchTab(tab) {
   overflow: hidden;
   width: 100%;
   box-sizing: border-box;
+  min-height: 0;
 }
 
 .tab-content {
@@ -175,8 +184,7 @@ function switchTab(tab) {
   box-sizing: border-box;
   
   &.map-view {
-    height: calc(100vh - 200px);
-    height: calc(var(--vh) * 100 - 200px);
+    height: 100%;
     margin: 0;
     padding: 0;
   }
