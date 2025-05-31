@@ -12,6 +12,7 @@ import { useDialogStore } from "../../../store/dialogStore";
 
 import UserSettings from "../../dialogs/UserSettings.vue";
 import ContributorsList from "../../dialogs/ContributorsList.vue";
+import SearchInput from "../forms/SearchInput.vue";
 
 const route = useRoute();
 const authStore = useAuthStore();
@@ -75,6 +76,7 @@ const linkQuery = computed(() => {
       </router-link>
     </div>
     <div class="navbar-user">
+      <SearchInput />
       <button
         v-if="!(authStore.isMobileDevice && authStore.isNarrowDevice)"
         class="hide-if-mobile"
