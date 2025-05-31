@@ -1,7 +1,10 @@
 <script setup>
 import { computed } from "vue";
+import { useRouter } from "vue-router";
 import { useSearchStore } from "../../../store/searchStore";
 import { useContentStore } from "../../../store/contentStore";
+
+const router = useRouter();
 
 const searchStore = useSearchStore();
 const contentStore = useContentStore();
@@ -60,12 +63,9 @@ const removeSelectedItem = (item) => {
 	searchStore.removeSelectedItem(item);
 };
 
-const clearAllFilters = () => {
-	searchStore.clearAllFilters();
-};
-
 const startSearch = () => {
 	searchStore.performSearch();
+	router.push("/search-result");
 };
 
 const isTopicSelected = (topicName) => searchStore.selectedTopics.includes(topicName);

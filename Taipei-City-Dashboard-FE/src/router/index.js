@@ -35,6 +35,11 @@ const routes = [
 		component: DashboardView,
 	},
 	{
+		path: "/search-result",
+		name: "search-result",
+		component: () => import("../views/SearchResultView.vue"),
+	},
+	{
 		path: "/mapview",
 		name: "mapview",
 		component: MapView,
