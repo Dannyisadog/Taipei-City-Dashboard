@@ -103,7 +103,6 @@ function handleMoreInfo(item) {
       <DashboardComponent
         v-for="item in searchResults"
         :key="`${item.index}-${item.city}`"
-        mode="half"
         :config="item"
         :info-btn="true"
         :active-city="item.city"
