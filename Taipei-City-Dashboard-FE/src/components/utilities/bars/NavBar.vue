@@ -12,11 +12,12 @@ import { useDialogStore } from "../../../store/dialogStore";
 
 import UserSettings from "../../dialogs/UserSettings.vue";
 import ContributorsList from "../../dialogs/ContributorsList.vue";
-import SearchInput from "../forms/SearchInput.vue";
+import { useSearchStore } from "../../../store/searchStore";
 
 const route = useRoute();
 const authStore = useAuthStore();
 const dialogStore = useDialogStore();
+const searchStore = useSearchStore();
 const { isFullscreen, toggle } = useFullscreen();
 
 const linkQuery = computed(() => {
@@ -76,7 +77,12 @@ const linkQuery = computed(() => {
       </router-link>
     </div>
     <div class="navbar-user">
-      <SearchInput />
+      <button
+        class="search-input-button"
+        @click="searchStore.openSearchOffcanvas"
+      >
+        <span>tune</span>
+      </button>
       <button
         v-if="!(authStore.isMobileDevice && authStore.isNarrowDevice)"
         class="hide-if-mobile"

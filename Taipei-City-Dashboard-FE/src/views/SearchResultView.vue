@@ -27,15 +27,6 @@ const searchResults = computed(() => {
 			return false;
 		}
 		
-		if (searchStore.searchParams.keyword) {
-			const keyword = searchStore.searchParams.keyword.toLowerCase();
-			const nameMatch = component.name?.toLowerCase().includes(keyword);
-			
-			if (!nameMatch) {
-				return false;
-			}
-		}
-		
 		if (params.topics.length > 0) {
 			const selectedComponentIds = new Set();
 			

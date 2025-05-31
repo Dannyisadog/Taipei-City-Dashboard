@@ -8,8 +8,6 @@ export const useSearchStore = defineStore("search", {
 		allTopics: [],
 		// All source
 		allSource: [],
-		// Search keyword
-		searchKeyword: "",
 		// Loading state
 		isSearching: false,
 		// Selected topic names (strings)
@@ -26,7 +24,6 @@ export const useSearchStore = defineStore("search", {
 		// Get search parameters for API calls
 		searchParams() {
 			return {
-				keyword: this.searchKeyword,
 				topics: this.selectedTopics,
 				departments: this.selectedDepartments,
 				cities: this.selectedCities
@@ -54,11 +51,6 @@ export const useSearchStore = defineStore("search", {
 				});
 			});
 			this.allTopics = [...allTopicNames];
-		},
-
-		// Set search keyword
-		setSearchKeyword(keyword) {
-			this.searchKeyword = keyword;
 		},
 
 		async getAllSearchComponents() {
@@ -139,11 +131,6 @@ export const useSearchStore = defineStore("search", {
 			} else {
 				this.selectedCities.push(cityValue);
 			}
-		},
-
-		// 清空關鍵字
-		clearSearchKeyword() {
-			this.searchKeyword = "";
 		},
 
 		// 清空所有選擇
