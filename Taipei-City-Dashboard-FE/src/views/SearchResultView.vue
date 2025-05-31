@@ -74,10 +74,6 @@ const searchResults = computed(() => {
 	return uniqueComponents;
 });
 
-// watchEffect(() => {
-// 	console.log('searchResults', searchResults.value)
-// })
-
 function toggleFavorite(id) {
 	if (contentStore.favorites?.components.includes(id)) {
 		contentStore.unfavoriteComponent(id);
@@ -128,6 +124,7 @@ function goToDashboard() {
       <DashboardComponent
         v-for="item in searchResults"
         :key="`${item.index}-${item.city}`"
+        mode="half"
         :config="item"
         :info-btn="true"
         :active-city="item.city"
