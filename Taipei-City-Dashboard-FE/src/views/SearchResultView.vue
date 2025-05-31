@@ -1,6 +1,5 @@
 <script setup>
 import { computed } from "vue";
-import { useRouter } from "vue-router";
 import DashboardComponent from "../dashboardComponent/DashboardComponent.vue";
 import { useContentStore } from "../store/contentStore";
 import { useSearchStore } from "../store/searchStore";
@@ -9,8 +8,7 @@ import { useAuthStore } from "../store/authStore";
 
 import MoreInfo from "../components/dialogs/MoreInfo.vue";
 import ReportIssue from "../components/dialogs/ReportIssue.vue";
-
-const router = useRouter();
+import router from "../router";
 
 const contentStore = useContentStore();
 const searchStore = useSearchStore();
@@ -72,8 +70,22 @@ const searchResults = computed(() => {
 		return true;
 	});
 	
-	return filteredComponents;
+	const uniqueMap = new Map();
+	const uniqueComponents = filteredComponents.filter(component => {
+		const key = `${component.city}_${component.index}`;
+		if (!uniqueMap.has(key)) {
+			uniqueMap.set(key, true);
+			return true;
+		}
+		return false;
+	});
+	
+	return uniqueComponents;
 });
+
+// watchEffect(() => {
+// 	console.log('searchResults', searchResults.value)
+// })
 
 function toggleFavorite(id) {
 	if (contentStore.favorites?.components.includes(id)) {
@@ -96,8 +108,8 @@ function handleMoreInfo(item) {
 	dialogStore.showMoreInfo(item);
 }
 
-function goBack() {
-	router.back();
+function goToDashboard() {
+	router.push("/dashboard");
 }
 </script>
 
@@ -108,7 +120,7 @@ function goBack() {
       <div class="search-result-nav">
         <button 
           class="back-btn"
-          @click="goBack"
+          @click="goToDashboard"
         >
           <span>chevron_left</span>
           返回儀表板總覽

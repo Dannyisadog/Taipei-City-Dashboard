@@ -19,6 +19,7 @@ import MapView from "../views/MapView.vue";
 import ComponentView from "../views/ComponentView.vue";
 import ComponentInfoView from "../views/ComponentInfoView.vue";
 import EmbedView from "../views/EmbedView.vue";
+import SearchResultView from "../views/SearchResultView.vue";
 
 const routes = [
 	{
@@ -38,7 +39,7 @@ const routes = [
 	{
 		path: "/search-result",
 		name: "search-result",
-		component: () => import("../views/SearchResultView.vue"),
+		component: SearchResultView,
 	},
 	{
 		path: "/mapview",

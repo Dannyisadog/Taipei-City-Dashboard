@@ -36,9 +36,8 @@ export const useSearchStore = defineStore("search", {
 	
 	actions: {
 		async setupAllSource() {
-			const response = await http.get(`/component/`);
-			const sources = response.data.data.map(item => item.source).filter(Boolean);
-			this.allSource = [...new Set(sources)];
+			const response = await http.get(`/component/sources`);
+			this.allSource = [...new Set(response.data)];
 		},
 		setupAllTopics() {
 			const contentStore = useContentStore();

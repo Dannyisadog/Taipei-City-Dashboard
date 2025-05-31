@@ -243,13 +243,14 @@ export const useContentStore = defineStore("content", {
 
 				if (authStore.currentPath === 'search-result') {
 					this.cityDashboard.components = await searchStore.getAllSearchComponents()
+					this.filterCurrentDashboardContent(true);
 				}
 				else {
 					// 針對目前index 取得不分city的資料
 					const response = await http.get(`/dashboard/${this.currentDashboard.index}`);
 					this.cityDashboard.components = response.data.data || [];
+					this.filterCurrentDashboardContent();
 				}
-				this.filterCurrentDashboardContent();
 			} catch (error) {
 				console.error("Error getting dashboard index data:", error);
 			}
@@ -355,7 +356,7 @@ export const useContentStore = defineStore("content", {
 			this.filterCurrentDashboardContent();
 		},
 		// 5. filter the info for the current dashboard based on the index and city and adds it to "currentDashboard"
-		async filterCurrentDashboardContent() {
+		async filterCurrentDashboardContent(dontNeedFilter = false) {
 			const { components } = this.cityDashboard;
 
 			if (components && components.length > 0) {
@@ -363,7 +364,7 @@ export const useContentStore = defineStore("content", {
 				const notCurrentCityData = components.filter(item => item.city !== this.currentDashboard.city);
 
 				// If city is defined, filter components by city
-				if (this.currentDashboard.city) {
+				if (this.currentDashboard.city && !dontNeedFilter) {
 					this.currentDashboard.components = currentCityData;
 					this.currentDashboardExcluded.components = notCurrentCityData;
 				} else {

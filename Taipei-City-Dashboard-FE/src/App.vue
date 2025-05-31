@@ -156,7 +156,7 @@ onBeforeUnmount(() => {
       </div>
     </div>
     <div
-      v-if="
+      v-else-if="
         authStore.currentPath === 'search-result'
       "
       class="app-content"

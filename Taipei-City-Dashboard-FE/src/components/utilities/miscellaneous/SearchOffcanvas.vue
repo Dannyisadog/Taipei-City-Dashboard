@@ -1,10 +1,8 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
 import { useSearchStore } from "../../../store/searchStore";
 import { useContentStore } from "../../../store/contentStore";
-
-const router = useRouter();
+import router from "../../../router";
 
 const searchStore = useSearchStore();
 const contentStore = useContentStore();
@@ -147,8 +145,8 @@ const syncToStore = () => {
 
 const startSearch = () => {
 	syncToStore();
-	router.push("/search-result");
 	searchStore.closeSearchOffcanvas();
+	router.push("/search-result");
 };
 
 const isCitySelected = (cityValue) => localSelectedCities.value.includes(cityValue);
