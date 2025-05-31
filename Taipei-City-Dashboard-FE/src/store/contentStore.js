@@ -13,6 +13,7 @@ import { useDialogStore } from "./dialogStore";
 import { useAuthStore } from "./authStore";
 import { getComponentDataTimeframe } from "../assets/utilityFunctions/dataTimeframe";
 import { CityManager } from "../dashboardComponent/utilities/cityManager";
+import { useSearchStore } from "./searchStore";
 
 export const useContentStore = defineStore("content", {
 	state: () => ({
@@ -107,9 +108,12 @@ export const useContentStore = defineStore("content", {
 			// 1-5. If all info is present, skip steps 2, 3, 5 and call the setCurrentDashboardAllContent method (3.)
 			this.currentDashboard.components = [];
 			this.setCurrentDashboardAllContent();
+
+			const searchStore = useSearchStore();
+			searchStore.setupAllTopics();
 		},
 		// 2. Call an API to get all dashboard info and reroute the user to the first dashboard in the list
-		async setDashboards() {
+		async setDashboards(onlyDashboard = false) {
 			const response = await http.get(`/dashboard/`);
 			const data = response.data.data || {};
 
@@ -138,6 +142,11 @@ export const useContentStore = defineStore("content", {
 					}
 				}
 			});
+
+			const searchStore = useSearchStore();
+			searchStore.setupAllTopics();
+
+			if (onlyDashboard) return;
 
 			// 2-1. If the current path is /dashboard or /mapview, redirect to the first dashboard
 			if (!this.currentDashboard.index) {
