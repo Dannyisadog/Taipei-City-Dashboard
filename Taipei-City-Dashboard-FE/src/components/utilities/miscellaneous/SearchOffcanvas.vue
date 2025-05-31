@@ -153,11 +153,6 @@ const startSearch = () => {
             </div>
           </div>
         </div>
-
-        <div 
-          v-if="selectedItems.length > 0" 
-          class="filter-divider"
-        />
 		
         <!-- Content -->
         <div class="search-offcanvas-content">
@@ -179,8 +174,6 @@ const startSearch = () => {
               </button>
             </div>
           </div>
-
-          <div class="filter-divider" />
 
           <!-- Department Tags -->
           <div class="filter-section">
@@ -305,6 +298,7 @@ const startSearch = () => {
 	&-content {
 		flex: 1;
 		padding: 32px 45px;
+		overflow-x: hidden;
 		overflow-y: auto;
 		display: flex;
 		flex-direction: column;
@@ -393,6 +387,7 @@ const startSearch = () => {
 .filter-section {
 	display: flex;
 	flex-direction: column;
+	flex-shrink: 0;
 	gap: 15px;
 }
 
@@ -429,7 +424,7 @@ const startSearch = () => {
 }
 
 .filter-tag {
-	padding: 6px 12px;
+	padding: 6px 8px;
 	border-radius: 9999px;
 	border: 1px solid var(--color-highlight);
 	background-color: transparent;
