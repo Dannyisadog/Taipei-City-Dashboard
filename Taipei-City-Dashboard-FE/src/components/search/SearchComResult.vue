@@ -56,6 +56,11 @@ const filteredComponents = computed(() => {
 			return false;
 		}
 		
+		// 空間資料過濾
+		if (searchStore.selectedMapData && !(component.map_config && component.map_config[0] !== null && component.map_config?.length > 0)) {
+			return false;
+		}
+		
 		return true;
 	});
 	

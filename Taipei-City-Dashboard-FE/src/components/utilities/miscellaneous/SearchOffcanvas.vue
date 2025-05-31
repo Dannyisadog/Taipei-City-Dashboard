@@ -11,12 +11,14 @@ const contentStore = useContentStore();
 const localSelectedCities = ref([]);
 const localSelectedTopics = ref([]); // topic names
 const localSelectedDepartments = ref([]);
+const localSelectedMapData = ref(false);
 
 // Initialize local state from store when component is created
 const initializeLocalState = () => {
 	localSelectedCities.value = [...searchStore.selectedCities];
 	localSelectedTopics.value = [...searchStore.selectedTopics];
 	localSelectedDepartments.value = [...searchStore.selectedDepartments];
+	localSelectedMapData.value = searchStore.selectedMapData;
 };
 
 // Initialize on component mount
@@ -52,6 +54,15 @@ const selectedItems = computed(() => {
 			name: departmentName 
 		});
 	});
+	
+	// Add map data filter
+	if (localSelectedMapData.value) {
+		items.push({ 
+			type: "mapData", 
+			id: "mapData", 
+			name: "空間資料" 
+		});
+	}
 	
 	return items;
 });
@@ -127,6 +138,8 @@ const removeSelectedItem = (item) => {
 		if (index > -1) {
 			localSelectedDepartments.value.splice(index, 1);
 		}
+	} else if (item.type === "mapData") {
+		localSelectedMapData.value = false;
 	}
 };
 
@@ -134,6 +147,7 @@ const clearAllFilters = () => {
 	localSelectedCities.value = [];
 	localSelectedTopics.value = [];
 	localSelectedDepartments.value = [];
+	localSelectedMapData.value = false;
 	searchStore.clearAllFilters();
 };
 
@@ -141,6 +155,7 @@ const syncToStore = () => {
 	searchStore.selectedCities = [...localSelectedCities.value];
 	searchStore.selectedTopics = [...localSelectedTopics.value];
 	searchStore.selectedDepartments = [...localSelectedDepartments.value];
+	searchStore.selectedMapData = localSelectedMapData.value;
 };
 
 const startSearch = () => {
@@ -152,6 +167,10 @@ const startSearch = () => {
 const isCitySelected = (cityValue) => localSelectedCities.value.includes(cityValue);
 const isTopicSelected = (topicName) => localSelectedTopics.value.includes(topicName);
 const isDepartmentSelected = (departmentName) => localSelectedDepartments.value.includes(departmentName);
+
+const toggleMapData = () => {
+	localSelectedMapData.value = !localSelectedMapData.value;
+};
 
 onMounted(async () => {
 	await searchStore.setupAllSource();
@@ -261,6 +280,23 @@ onMounted(async () => {
                 @click="toggleDepartment(department.name)"
               >
                 {{ department.name }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Map Data Filter -->
+          <div class="filter-section">
+            <div class="filter-title">
+              <div class="filter-indicator" />
+              <span>組件資訊</span>
+            </div>
+			
+            <div class="tag-group">
+              <button
+                :class="['filter-tag', { selected: localSelectedMapData }]"
+                @click="toggleMapData"
+              >
+                空間資料
               </button>
             </div>
           </div>

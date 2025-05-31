@@ -55,6 +55,12 @@ const mapComponents = computed(() => {
 			return false;
 		}
 		
+		// 空間資料過濾（地圖視圖中這個過濾條件總是隱含的，因為只顯示有地圖配置的組件）
+		// 但為了保持一致性，我們仍然檢查這個條件
+		if (searchStore.selectedMapData && !(component.map_config && component.map_config[0] !== null && component.map_config?.length > 0)) {
+			return false;
+		}
+		
 		return true;
 	});
 	

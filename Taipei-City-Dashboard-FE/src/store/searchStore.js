@@ -16,6 +16,8 @@ export const useSearchStore = defineStore("search", {
 		selectedDepartments: [],
 		// Selected cities (multiple selection)
 		selectedCities: [],
+		// Has map data filter
+		selectedMapData: false,
 		// Search offcanvas visibility
 		searchOffcanvas: false,
 	}),
@@ -26,7 +28,8 @@ export const useSearchStore = defineStore("search", {
 			return {
 				topics: this.selectedTopics,
 				departments: this.selectedDepartments,
-				cities: this.selectedCities
+				cities: this.selectedCities,
+				mapData: this.selectedMapData
 			}
 		}
 	},
@@ -133,11 +136,17 @@ export const useSearchStore = defineStore("search", {
 			}
 		},
 
+		// Toggle map data selection
+		toggleMapData() {
+			this.selectedMapData = !this.selectedMapData;
+		},
+
 		// 清空所有選擇
 		clearAllFilters() {
 			this.selectedTopics = [];
 			this.selectedDepartments = [];
 			this.selectedCities = [];
+			this.selectedMapData = false;
 		},
 
 		// Remove selected item
@@ -157,6 +166,8 @@ export const useSearchStore = defineStore("search", {
 				if (index > -1) {
 					this.selectedCities.splice(index, 1);
 				}
+			} else if (item.type === "mapData") {
+				this.selectedMapData = false;
 			}
 		},
 	}
