@@ -1,44 +1,195 @@
 <script setup>
+import { computed, onBeforeMount } from "vue";
 import { useRouter } from "vue-router";
+import DashboardComponent from "../dashboardComponent/DashboardComponent.vue";
+import { useContentStore } from "../store/contentStore";
+import { useSearchStore } from "../store/searchStore";
+import { useDialogStore } from "../store/dialogStore";
+import { useAuthStore } from "../store/authStore";
+
+import MoreInfo from "../components/dialogs/MoreInfo.vue";
+import ReportIssue from "../components/dialogs/ReportIssue.vue";
 
 const router = useRouter();
 
-const handleGoBack = () => {
-	router.push('/dashboard');
-};
+const contentStore = useContentStore();
+const searchStore = useSearchStore();
+const dialogStore = useDialogStore();
+const authStore = useAuthStore();
+
+const searchResults = computed(() => {
+	const params = searchStore.searchParams;
+	
+	if (!searchStore.searchParams.keyword && !params.city && params.topics.length === 0 && params.departments.length === 0) {
+		return [];
+	}
+	
+	if (!contentStore.cityDashboard.components || !Array.isArray(contentStore.cityDashboard.components)) {
+		return [];
+	}
+	
+	const allComponents = [...contentStore.cityDashboard.components];
+	const filteredComponents = allComponents.filter(component => {
+		if (searchStore.selectedCity && component.city !== searchStore.selectedCity) {
+			return false;
+		}
+		
+		if (searchStore.searchParams.keyword) {
+			const keyword = searchStore.searchParams.keyword.toLowerCase();
+			const nameMatch = component.name?.toLowerCase().includes(keyword);
+			
+			if (!nameMatch) {
+				return false;
+			}
+		}
+		
+		if (params.topics.length > 0) {
+			const cityDashboards = contentStore.getDashboardsByCity(searchStore.selectedCity);
+			
+			if (!cityDashboards || !Array.isArray(cityDashboards)) {
+				return false;
+			}
+			
+			const selectedComponentIds = new Set();
+			params.topics.forEach(topicIndex => {
+				const dashboard = cityDashboards.find(d => d.index === topicIndex);
+				if (dashboard && dashboard.components) {
+					dashboard.components.forEach(componentId => {
+						selectedComponentIds.add(componentId);
+					});
+				}
+			});
+			
+			if (!selectedComponentIds.has(component.id)) {
+				return false;
+			}
+		}
+		
+		if (params.departments.length > 0 && !params.departments.includes(component.source)) {
+			return false;
+		}
+		
+		return true;
+	});
+	
+	return filteredComponents;
+});
+
+function toggleFavorite(id) {
+	if (contentStore.favorites?.components.includes(id)) {
+		contentStore.unfavoriteComponent(id);
+		return;
+	}
+	
+	contentStore.favoriteComponent(id);
+}
+
+function handleMoreInfo(item) {
+	if (authStore.isMobileDevice && authStore.isNarrowDevice) {
+		router.push({
+			name: "component-info",
+			params: { index: item.index },
+		});
+		return;
+	}
+	
+	dialogStore.showMoreInfo(item);
+}
+
+function handleOpenSearchOffcanvas() {
+	searchStore.searchOffcanvas = true;
+}
+
+function goBack() {
+	router.back();
+}
+
+onBeforeMount(() => {
+	const params = searchStore.searchParams;
+	
+	// no search conditions
+	if (!params.keyword && !params.city && params.topics.length === 0 && params.departments.length === 0) {
+		router.push("/dashboard");
+		return;
+	}
+});
 </script>
 
 <template>
   <div class="search-result">
     <!-- Header -->
     <div class="search-result-header">
-      <button 
-        class="search-result-back"
-        @click="handleGoBack"
-      >
-        <span>chevron_left</span>
-        返回儀表板總覽
-      </button>
-      <h2 class="search-result-header-title">
-        搜尋結果
-      </h2>
+      <div class="search-result-nav">
+        <button 
+          class="back-btn"
+          @click="goBack"
+        >
+          <span>chevron_left</span>
+          返回儀表板總覽
+        </button>
+        <h1>搜尋結果</h1>
+      </div>
     </div>
 
-    <div class="search-result-divider" />
+    <!-- Results -->
+    <div 
+      v-if="searchResults.length > 0"
+      class="dashboard"
+    >
+      <DashboardComponent
+        v-for="item in searchResults"
+        :key="`${item.index}-${item.city}`"
+        :config="item"
+        :info-btn="true"
+        :active-city="item.city"
+        :select-btn="true"
+        :select-btn-disabled="contentStore.cityManager.getSelectList(item.city).length === 1"
+        :select-btn-list="contentStore.cityManager.getSelectList(item.city)"
+        :city-tag="contentStore.cityManager.getTagList(item.city)"
+        :favorite-btn="authStore.token ? true : false"
+        :is-favorite="contentStore.favorites?.components.includes(item.id)"
+        @favorite="
+          (id) => {
+            toggleFavorite(id);
+          }
+        "
+        @info="
+          (item) => {
+            handleMoreInfo(item);
+          }
+        "
+        @change-city="(city)=> {
+          const selectedData = contentStore.cityDashboard.components.find((data) => {
+            return data.index === item.index && data.city === city;
+          });
 
-    <!-- Empty content area for future implementation -->
-    <div class="search-result-content">
-      <!-- Content will be implemented later -->
-      <div v-if="false" />
-      <div
-        v-else
-        class="search-result-content-empty"
-      >
-        <p class="search-result-content-text">
-          找不到您想搜尋的資料。換個關鍵字或利用進階搜尋試試？
-        </p>
+          if (!selectedData) return;
+
+          const componentIndex = contentStore.currentDashboard.components.findIndex(
+            (item) => item.id === selectedData.id
+          );
+
+          contentStore.setComponentData(componentIndex, selectedData);
+        }"
+      />
+      <MoreInfo />
+      <ReportIssue />
+    </div>
+
+    <!-- No Results -->
+    <div 
+      v-else
+      class="dashboard dashboard-nodashboard"
+    >
+      <div class="dashboard-nodashboard-content">
+        <h2>找不到您想搜尋的資料。換個關鍵字或利用進階搜尋試試？</h2>
+        <img
+          src="/images/poor_dog.png"
+          alt="poor dog"
+        >
         <button
-          class="search-result-advanced-search-btn"
+          class="start-search-btn"
+          @click="handleOpenSearchOffcanvas"
         >
           進階搜尋
         </button>
@@ -49,89 +200,120 @@ const handleGoBack = () => {
 
 <style scoped lang="scss">
 .search-result {
-  width: 100%;
-  height: calc(var(--vh) * 100);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-
   &-header {
+	min-height: 1.6rem;
     display: flex;
-    align-items: center;
+    justify-content: space-between;
+    margin: 10px var(--font-m);
+    padding-bottom: 0.5rem;
+    border-bottom: solid 1px var(--color-border);
+    user-select: none;
+  }
+
+  &-nav {
+	width: 100%;
     position: relative;
-    padding: 30px 20px;
-
-    &-title {
-      color: var(--color-normal-text);
-      font-size: var(--font-l);
-      font-weight: 700;
-      margin: 0;
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-    }
-  }
-
-  &-back {
     display: flex;
-    align-items: center;
-    gap: 6px;
-    background: transparent;
-    border: none;
-    color: var(--color-normal-text);
-    font-size: 14px;
-    cursor: pointer;
-
-    span {
-      font-family: var(--font-icon);
-      font-size: calc(var(--font-xl) * var(--font-to-icon));
-    }
-  }
-
-  &-divider {
-    width: 100%;
-    height: 1px;
-    background-color: var(--color-border);
-  }
-
-  &-content {
-	flex: 1;
-	height: 100%;
-	padding: 20px 45px;
-	display: flex;
-	justify-content: center;
 	align-items: center;
-	text-align: center;
-    overflow: hidden;
+	justify-content: center;
+    gap: var(--font-m);
 
-	&-text {
-		font-size: var(--font-l);
-		margin: 0;
-	}
-
-	&-empty {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 170px;
-	}
-  }
-
-  &-advanced-search-btn {
-    background-color: var(--color-highlight);
-    color: var(--color-normal-text);
-    border: none;
-    border-radius: 4px;
-    padding: 8px 16px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-      opacity: 0.9;
-      transform: translateY(-1px);
+    h1 {
+      font-size: var(--font-xl);
+      font-weight: 700;
+      color: var(--color-normal-text);
+      margin: 0;
     }
   }
 }
+
+.back-btn {
+  position: absolute;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--font-xs);
+  padding: var(--font-xs) var(--font-s);
+  background-color: transparent;
+  color: var(--color-normal-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  span {
+	font-family: var(--font-icon);
+	font-size: calc(var(--font-ms) * var(--font-to-icon));
+  }
+}
+
+.start-search-btn {
+	background-color: var(--color-highlight);
+	color: var(--color-normal-text);
+	border: none;
+	border-radius: 4px;
+	padding: 8px 16px;
+	font-size: 16px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.dashboard {
+  max-height: calc(100vh - 127px);
+  max-height: calc(var(--vh) * 100 - 127px);
+  display: grid;
+  row-gap: var(--font-s);
+  column-gap: var(--font-s);
+  margin: var(--font-m) var(--font-m);
+  overflow-y: scroll;
+
+  @media (min-width: 720px) {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  @media (min-width: 1200px) {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  @media (min-width: 1800px) {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+  }
+
+  @media (min-width: 2200px) {
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+  }
+
+  &-nodashboard {
+    grid-template-columns: 1fr;
+
+    &-content {
+      width: 100%;
+      height: calc(100vh - 127px);
+      height: calc(var(--vh) * 100 - 127px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+	  row-gap: 45px;
+
+      span {
+        margin-bottom: var(--font-ms);
+        font-family: var(--font-icon);
+        font-size: 2rem;
+        color: var(--color-complement-text);
+      }
+
+      h2 {
+        margin-bottom: var(--font-s);
+        color: var(--color-normal-text);
+      }
+    }
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 </style>
+

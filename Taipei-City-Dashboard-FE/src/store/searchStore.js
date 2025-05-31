@@ -1,5 +1,4 @@
 import { defineStore } from "pinia";
-import { useContentStore } from "./contentStore";
 
 export const useSearchStore = defineStore("search", {
 	state: () => ({
@@ -7,39 +6,17 @@ export const useSearchStore = defineStore("search", {
 		searchKeyword: "",
 		// Loading state
 		isSearching: false,
-		// Selected topic names
+		// Selected topic indexes
 		selectedTopics: [],
 		// Selected department names  
 		selectedDepartments: [],
+		// Selected city (single selection)
+		selectedCity: "",
 		// Search offcanvas visibility
 		searchOffcanvas: false,
 	}),
 	
 	getters: {
-		// Get all selected items for display
-		selectedItems: (state) => {
-			const items = [];
-			
-			// Add selected topics
-			state.selectedTopics.forEach(topicName => {
-				items.push({ 
-					type: "topic", 
-					id: topicName, 
-					name: topicName 
-				});
-			});
-			
-			// Add selected departments
-			state.selectedDepartments.forEach(departmentName => {
-				items.push({ 
-					type: "department", 
-					id: departmentName, 
-					name: departmentName 
-				});
-			});
-			
-			return items;
-		},
 		// Get search parameters for API calls
 		searchParams: (state) => {
 			const {selectedDepartments} = state;
@@ -47,7 +24,8 @@ export const useSearchStore = defineStore("search", {
 			return {
 				keyword: state.searchKeyword,
 				topics: state.selectedTopics,
-				departments: selectedDepartments
+				departments: selectedDepartments,
+				city: state.selectedCity
 			};
 		}
 	},
@@ -58,13 +36,13 @@ export const useSearchStore = defineStore("search", {
 			this.searchKeyword = keyword;
 		},
 		
-		// Toggle topic selection
-		toggleTopic(topicName) {
-			const index = this.selectedTopics.indexOf(topicName);
+		// Toggle topic selection by index
+		toggleTopic(topicIndex) {
+			const index = this.selectedTopics.indexOf(topicIndex);
 			if (index > -1) {
 				this.selectedTopics.splice(index, 1);
 			} else {
-				this.selectedTopics.push(topicName);
+				this.selectedTopics.push(topicIndex);
 			}
 		},
 		
@@ -78,10 +56,18 @@ export const useSearchStore = defineStore("search", {
 			}
 		},
 		
+		// Set selected city (single selection)
+		setSelectedCity(cityValue) {
+			this.selectedCity = cityValue;
+			// 清空先前的選擇
+			this.selectedTopics = [];
+			this.selectedDepartments = [];
+		},
+		
 		// Remove selected item
 		removeSelectedItem(item) {
 			if (item.type === "topic") {
-				const index = this.selectedTopics.indexOf(item.name);
+				const index = this.selectedTopics.indexOf(item.id);
 				if (index > -1) {
 					this.selectedTopics.splice(index, 1);
 				}
@@ -97,12 +83,26 @@ export const useSearchStore = defineStore("search", {
 		clearAllFilters() {
 			this.selectedTopics = [];
 			this.selectedDepartments = [];
+			this.selectedCity = "";
 			this.searchKeyword = "";
 		},
 		
 		// Perform search
 		async performSearch() {
-			// TODO: Implement search logic
+			this.isSearching = true;
+			
+			try {
+				// 模擬搜尋延遲
+				await new Promise(resolve => setTimeout(resolve, 500));
+				
+				// 實際的搜尋邏輯會在 SearchResultView 中的 computed 中處理
+				// 這裡只是設定搜尋狀態
+				
+			} catch (error) {
+				console.error("Search error:", error);
+			} finally {
+				this.isSearching = false;
+			}
 		},
 	}
 }); 

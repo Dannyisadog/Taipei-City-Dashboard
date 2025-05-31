@@ -1,6 +1,10 @@
 <script setup>
 import { computed } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { useSearchStore } from "../../../store/searchStore";
+
+const route = useRoute();
+const router = useRouter();
 
 const searchStore = useSearchStore();
 
@@ -13,13 +17,16 @@ const searchValue = computed({
 	}
 });
 
+const canAdvanceSearch = computed(() =>  route.name === 'dashboard');
+
 const handleClear = () => {
 	searchStore.setSearchKeyword("");
 };
 
 const handleKeyPress = (event) => {
 	if (event.key === "Enter") {
-		// TODO:
+		searchStore.performSearch();
+		router.push("/search-result");
 	}
 };
 </script>
@@ -53,6 +60,7 @@ const handleKeyPress = (event) => {
       <!-- Search button -->
       <button
         class="search-input-button"
+        :disabled="!canAdvanceSearch"
         @click="searchStore.searchOffcanvas = true"
       >
         <span>tune</span>
@@ -144,6 +152,11 @@ const handleKeyPress = (event) => {
 		color: var(--color-normal-text);
 		cursor: pointer;
 		transition: background-color 0.2s ease;
+
+		&:disabled {
+			cursor: not-allowed;
+			opacity: 0.5;
+		}
 
 		span {
 			font-family: var(--font-icon);

@@ -155,6 +155,17 @@ onBeforeUnmount(() => {
         <SearchOffcanvas />
       </div>
     </div>
+    <div
+      v-if="
+        authStore.currentPath === 'search-result'
+      "
+      class="app-content"
+    >
+      <div class="app-content-main">
+        <RouterView />
+        <SearchOffcanvas />
+      </div>
+    </div>
     <!-- /admin layouts -->
     <div
       v-else-if="authStore.currentPath === 'admin'"

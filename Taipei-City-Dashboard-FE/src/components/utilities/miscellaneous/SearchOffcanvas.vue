@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useSearchStore } from "../../../store/searchStore";
 import { useContentStore } from "../../../store/contentStore";
@@ -9,67 +9,172 @@ const router = useRouter();
 const searchStore = useSearchStore();
 const contentStore = useContentStore();
 
-const selectedItems = computed(() => searchStore.selectedItems);
+// Local state for filters (separate from store)
+const localSelectedCity = ref("");
+const localSelectedTopics = ref([]);
+const localSelectedDepartments = ref([]);
 
-const topicTags = computed(() => {
-	const uniqueNames = new Set();
+// Initialize local state from store when component is created
+const initializeLocalState = () => {
+	localSelectedCity.value = searchStore.selectedCity;
+	localSelectedTopics.value = [...searchStore.selectedTopics];
+	localSelectedDepartments.value = [...searchStore.selectedDepartments];
+};
+
+// Initialize on component mount
+initializeLocalState();
+
+const selectedItems = computed(() => {
+	const items = [];
 	
-	// Extract all unique names from the dashboards Map
-	for (const [, dashboards] of contentStore.dashboards.entries()) {
-		if (Array.isArray(dashboards)) {
-			dashboards.forEach(dashboard => {
-				if (dashboard.name) {
-					uniqueNames.add(dashboard.name);
-				}
+	// Add selected topics - need to get name from dashboard index
+	if (!localSelectedCity.value) {
+		return items;
+	}
+	
+	const cityDashboards = contentStore.getDashboardsByCity(localSelectedCity.value);
+	if (!cityDashboards) {
+		return items;
+	}
+	
+	localSelectedTopics.value.forEach(topicIndex => {
+		const dashboard = cityDashboards.find(d => d.index === topicIndex);
+		if (dashboard) {
+			items.push({ 
+				type: "topic", 
+				id: topicIndex, 
+				name: dashboard.name 
 			});
 		}
-	}
+	});
 	
-	// Convert Set to array and return as string array
-	return Array.from(uniqueNames);
+	// Add selected departments
+	localSelectedDepartments.value.forEach(departmentName => {
+		items.push({ 
+			type: "department", 
+			id: departmentName, 
+			name: departmentName 
+		});
+	});
+	
+	return items;
 });
 
-// TODO: 更改資料來源
-const departmentTags = computed(() => {
-	const uniqueSources = new Set();
-	
-	// Extract all unique sources from cityDashboard.components
-	if (contentStore.cityDashboard.components && Array.isArray(contentStore.cityDashboard.components)) {
-		contentStore.cityDashboard.components.forEach(component => {
-			if (component.source) {
-				uniqueSources.add(component.source);
-			}
-		});
+const cityOptions = computed(() => {
+	if (contentStore.cityManager && contentStore.cityManager.allCities) {
+		return contentStore.cityManager.allCities;
+	}
+	return [];
+});
+
+const topicTags = computed(() => {
+	if (!localSelectedCity.value) {
+		return [];
 	}
 	
-	// Convert Set to array and return as string array
+	const cityDashboards = contentStore.getDashboardsByCity(localSelectedCity.value);
+	if (!Array.isArray(cityDashboards)) {
+		return [];
+	}
+	
+	return cityDashboards.map(dashboard => ({
+		index: dashboard.index,
+		name: dashboard.name
+	}));
+});
+
+const departmentTags = computed(() => {
+	if (!localSelectedCity.value) {
+		return [];
+	}
+	
+	if (!contentStore.cityDashboard.components || !Array.isArray(contentStore.cityDashboard.components)) {
+		return [];
+	}
+	
+	const uniqueSources = new Set();
+	contentStore.cityDashboard.components.forEach(component => {
+		if (!component.source) {
+			return;
+		}
+		
+		// 根據城市過濾組件
+		if (!component.city || component.city === localSelectedCity.value) {
+			uniqueSources.add(component.source);
+		}
+	});
+	
 	return Array.from(uniqueSources);
 });
 
 const handleClose = () => {
 	searchStore.searchOffcanvas = false;
-	searchStore.clearAllFilters();
+	// Reset local state to store state (discard changes)
+	initializeLocalState();
 };
 
-const toggleTopic = (topicName) => {
-	searchStore.toggleTopic(topicName);
+const toggleTopic = (topicIndex) => {
+	const index = localSelectedTopics.value.indexOf(topicIndex);
+	if (index > -1) {
+		localSelectedTopics.value.splice(index, 1);
+	} else {
+		localSelectedTopics.value.push(topicIndex);
+	}
 };
 
 const toggleDepartment = (departmentName) => {
-	searchStore.toggleDepartment(departmentName);
+	const index = localSelectedDepartments.value.indexOf(departmentName);
+	if (index > -1) {
+		localSelectedDepartments.value.splice(index, 1);
+	} else {
+		localSelectedDepartments.value.push(departmentName);
+	}
+};
+
+const handleCityChange = (event) => {
+	localSelectedCity.value = event.target.value;
+	// Clear local selections when city changes
+	localSelectedTopics.value = [];
+	localSelectedDepartments.value = [];
 };
 
 const removeSelectedItem = (item) => {
-	searchStore.removeSelectedItem(item);
+	if (item.type === "topic") {
+		const index = localSelectedTopics.value.indexOf(item.id);
+		if (index > -1) {
+			localSelectedTopics.value.splice(index, 1);
+		}
+	} else if (item.type === "department") {
+		const index = localSelectedDepartments.value.indexOf(item.id);
+		if (index > -1) {
+			localSelectedDepartments.value.splice(index, 1);
+		}
+	}
+};
+
+const clearAllFilters = () => {
+	localSelectedCity.value = "";
+	localSelectedTopics.value = [];
+	localSelectedDepartments.value = [];
+};
+
+const syncToStore = () => {
+	// Sync local state to store
+	searchStore.setSelectedCity(localSelectedCity.value);
+	searchStore.selectedTopics = [...localSelectedTopics.value];
+	searchStore.selectedDepartments = [...localSelectedDepartments.value];
 };
 
 const startSearch = () => {
+	// Sync local state to store before searching
+	syncToStore();
 	searchStore.performSearch();
+	searchStore.searchOffcanvas = false;
 	router.push("/search-result");
 };
 
-const isTopicSelected = (topicName) => searchStore.selectedTopics.includes(topicName);
-const isDepartmentSelected = (departmentName) => searchStore.selectedDepartments.includes(departmentName);
+const isTopicSelected = (topicIndex) => localSelectedTopics.value.includes(topicIndex);
+const isDepartmentSelected = (departmentName) => localSelectedDepartments.value.includes(departmentName);
 </script>
 
 <template>
@@ -118,8 +223,43 @@ const isDepartmentSelected = (departmentName) => searchStore.selectedDepartments
 		
         <!-- Content -->
         <div class="search-offcanvas-content">
-          <!-- Category Tags -->
+          <!-- City -->
           <div class="filter-section">
+            <div class="filter-title">
+              <div class="filter-indicator" />
+              <span>縣市</span>
+            </div>
+			
+            <div class="tag-group">
+              <div class="city-select-container">
+                <select 
+                  :value="localSelectedCity"
+                  class="city-select"
+                  @change="handleCityChange"
+                >
+                  <option
+                    value=""
+                    disabled
+                  >
+                    請選擇縣市
+                  </option>
+                  <option
+                    v-for="city in cityOptions"
+                    :key="city.value"
+                    :value="city.value"
+                  >
+                    {{ city.name }}
+                  </option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Category Tags -->
+          <div 
+            v-if="topicTags.length > 0"
+            class="filter-section"
+          >
             <div class="filter-title">
               <div class="filter-indicator" />
               <span>主題類別</span>
@@ -127,18 +267,21 @@ const isDepartmentSelected = (departmentName) => searchStore.selectedDepartments
 			
             <div class="tag-group">
               <button
-                v-for="topicName in topicTags"
-                :key="topicName"
-                :class="['filter-tag', { selected: isTopicSelected(topicName) }]"
-                @click="toggleTopic(topicName)"
+                v-for="topic in topicTags"
+                :key="topic.index"
+                :class="['filter-tag', { selected: isTopicSelected(topic.index) }]"
+                @click="toggleTopic(topic.index)"
               >
-                {{ topicName }}
+                {{ topic.name }}
               </button>
             </div>
           </div>
 
           <!-- Department Tags -->
-          <div class="filter-section">
+          <div 
+            v-if="departmentTags.length > 0"
+            class="filter-section"
+          >
             <div class="filter-title">
               <div class="filter-indicator" />
               <span>單位</span>
@@ -161,7 +304,7 @@ const isDepartmentSelected = (departmentName) => searchStore.selectedDepartments
         <div class="search-offcanvas-footer">
           <button
             class="clear-all-btn"
-            @click="handleClose"
+            @click="clearAllFilters"
           >
             清除全部
           </button>
@@ -386,6 +529,31 @@ const isDepartmentSelected = (departmentName) => searchStore.selectedDepartments
 	gap: 15px;
 }
 
+.city-select-container {
+	width: 100%;
+}
+
+.city-select {
+	width: 100%;
+	padding: 8px 12px;
+	border: 1px solid var(--color-border);
+	border-radius: 4px;
+	background-color: var(--color-background);
+	color: var(--color-normal-text);
+	font-size: 14px;
+	cursor: pointer;
+
+	&:focus {
+		outline: none;
+		border-color: var(--color-highlight);
+	}
+
+	option {
+		background-color: var(--color-background);
+		color: var(--color-normal-text);
+	}
+}
+
 .filter-tag {
 	padding: 6px 8px;
 	border-radius: 9999px;
@@ -428,10 +596,6 @@ const isDepartmentSelected = (departmentName) => searchStore.selectedDepartments
 	font-weight: 600;
 	cursor: pointer;
 	transition: all 0.2s ease;
-
-	&:hover {
-		opacity: 0.9;
-	}
 }
 
 .offcanvas-enter-active {

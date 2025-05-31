@@ -81,6 +81,10 @@ export class CityManager {
 		return this.configs;
 	}
 
+    get allCities() {
+        return this.cities;
+    }
+
     // Get the configuration for a specific city
 	getCityConfig(key: string): CityConfig | undefined {
         return this.configs.get(key);
