@@ -28,8 +28,7 @@ const searchResults = computed(() => {
 		return [];
 	}
 	
-	const allComponents = [...contentStore.cityDashboard.components];
-	const filteredComponents = allComponents.filter(component => {
+	const filteredComponents = contentStore.cityDashboard.components.filter(component => {
 		if (searchStore.selectedCity && component.city !== searchStore.selectedCity) {
 			return false;
 		}
@@ -44,7 +43,6 @@ const searchResults = computed(() => {
 		}
 		
 		if (params.topics.length > 0) {
-			// 從 dashboards Map 中獲取該城市的 dashboards
 			const cityDashboards = contentStore.dashboards.get(searchStore.selectedCity);
 			
 			if (!cityDashboards || !Array.isArray(cityDashboards)) {
@@ -53,7 +51,6 @@ const searchResults = computed(() => {
 			
 			const selectedComponentIds = new Set();
 			params.topics.forEach(topicName => {
-				// 根據 name 找到對應的 dashboard
 				const dashboard = cityDashboards.find(d => d.name === topicName);
 				if (dashboard && dashboard.components) {
 					dashboard.components.forEach(componentId => {
@@ -129,9 +126,9 @@ onBeforeMount(() => {
       </div>
     </div>
 
-    <!-- Results -->
+    <!-- 1. Filtered Components -->
     <div 
-      v-show="searchResults.length > 0"
+      v-if="searchResults?.length !== 0 || contentStore.cityDashboard.components?.length !== 0"
       class="dashboard"
     >
       <DashboardComponent
@@ -173,10 +170,28 @@ onBeforeMount(() => {
       <MoreInfo />
       <ReportIssue />
     </div>
-
-    <!-- No Results -->
+    <!-- 2. If dashboard is still loading -->
+    <div
+      v-else-if="contentStore.loading"
+      class="dashboard dashboard-nodashboard"
+    >
+      <div class="dashboard-nodashboard-content">
+        <div />
+      </div>
+    </div>
+    <!-- 3. If dashboard failed to load -->
+    <div
+      v-else-if="contentStore.error"
+      class="dashboard dashboard-nodashboard"
+    >
+      <div class="dashboard-nodashboard-content">
+        <span>sentiment_very_dissatisfied</span>
+        <h2>發生錯誤，無法載入儀表板</h2>
+      </div>
+    </div>
+    <!-- 4. No Results -->
     <div 
-      v-show="searchResults.length === 0"
+      v-else
       class="dashboard dashboard-nodashboard"
     >
       <div class="dashboard-nodashboard-content">
@@ -256,62 +271,68 @@ onBeforeMount(() => {
 }
 
 .dashboard {
-  max-height: calc(100vh - 127px);
-  max-height: calc(var(--vh) * 100 - 127px);
-  display: grid;
-  row-gap: var(--font-s);
-  column-gap: var(--font-s);
-  margin: var(--font-m) var(--font-m);
-  overflow-y: scroll;
+	max-height: calc(100vh - 127px);
+	max-height: calc(var(--vh) * 100 - 127px);
+	display: grid;
+	row-gap: var(--font-s);
+	column-gap: var(--font-s);
+	margin: var(--font-m) var(--font-m);
+	overflow-y: scroll;
 
-  @media (min-width: 720px) {
-    grid-template-columns: 1fr 1fr;
-  }
+	@media (min-width: 720px) {
+		grid-template-columns: 1fr 1fr;
+	}
 
-  @media (min-width: 1200px) {
-    grid-template-columns: 1fr 1fr 1fr;
-  }
+	@media (min-width: 1200px) {
+		grid-template-columns: 1fr 1fr 1fr;
+	}
 
-  @media (min-width: 1800px) {
-    grid-template-columns: 1fr 1fr 1fr 1fr;
-  }
+	@media (min-width: 1800px) {
+		grid-template-columns: 1fr 1fr 1fr 1fr;
+	}
 
-  @media (min-width: 2200px) {
-    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
-  }
+	@media (min-width: 2200px) {
+		grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+	}
 
-  &-nodashboard {
-    grid-template-columns: 1fr;
+	&-nodashboard {
+		grid-template-columns: 1fr;
 
-    &-content {
-      width: 100%;
-      height: calc(100vh - 127px);
-      height: calc(var(--vh) * 100 - 127px);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-	  row-gap: 45px;
+		&-content {
+			width: 100%;
+			height: calc(100vh - 127px);
+			height: calc(var(--vh) * 100 - 127px);
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
 
-      span {
-        margin-bottom: var(--font-ms);
-        font-family: var(--font-icon);
-        font-size: 2rem;
-        color: var(--color-complement-text);
-      }
+			span {
+				margin-bottom: var(--font-ms);
+				font-family: var(--font-icon);
+				font-size: 2rem;
+			}
 
-      h2 {
-        margin-bottom: var(--font-s);
-        color: var(--color-normal-text);
-      }
-    }
-  }
+			button {
+				color: var(--color-highlight);
+			}
+
+			div {
+				width: 2rem;
+				height: 2rem;
+				border-radius: 50%;
+				border: solid 4px var(--color-border);
+				border-top: solid 4px var(--color-highlight);
+				animation: spin 0.7s ease-in-out infinite;
+			}
+		}
+	}
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+	to {
+		transform: rotate(360deg);
+	}
 }
 </style>
 

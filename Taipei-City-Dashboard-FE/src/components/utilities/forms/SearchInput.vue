@@ -1,28 +1,23 @@
 <script setup>
-import { computed } from "vue";
-import { useRouter } from "vue-router";
+import { ref } from "vue";
 import { useSearchStore } from "../../../store/searchStore";
-
-const router = useRouter();
 
 const searchStore = useSearchStore();
 
-const searchValue = computed({
-	get() {
-		return searchStore.searchKeyword;
-	},
-	set(value) {
-		searchStore.setSearchKeyword(value);
-	}
-});
+const localKeyword = ref("");
 
 const handleClear = () => {
+	localKeyword.value = "";
 	searchStore.setSearchKeyword("");
 };
 
+const handleSyncToSearchResult = () => {
+	searchStore.setSearchKeyword(localKeyword.value);
+}
+
 const handleKeyPress = (event) => {
 	if (event.key === "Enter") {
-		router.push("/search-result");
+		handleSyncToSearchResult();
 	}
 };
 </script>
@@ -31,13 +26,16 @@ const handleKeyPress = (event) => {
   <div class="search-input">
     <div class="search-input-container">
       <!-- Search icon -->
-      <div class="search-input-icon">
+      <button
+        class="search-input-icon"
+        @click="handleSyncToSearchResult"
+      >
         <span>search</span>
-      </div>
+      </button>
       
       <!-- Input field -->
       <input
-        v-model="searchValue"
+        v-model="localKeyword"
         type="text"
         placeholder="搜尋關鍵字"
         class="search-input-field"
@@ -46,7 +44,7 @@ const handleKeyPress = (event) => {
 
       <!-- Clear button -->
       <button
-        v-if="searchValue.length > 0"
+        v-if="localKeyword.length > 0"
         class="search-input-clear"
         @click="handleClear"
       >
@@ -89,6 +87,7 @@ const handleKeyPress = (event) => {
 		margin-left: 7px;
 		height: 100%;
 		color: var(--color-normal-text);
+		cursor: pointer;
 
 		span {
 			font-family: var(--font-icon);

@@ -238,9 +238,17 @@ export const useContentStore = defineStore("content", {
 			
 			// Get the dashboard index data
 			try {
-				// 針對目前index 取得不分city的資料
-				const response = await http.get(`/dashboard/${this.currentDashboard.index}`);
-				this.cityDashboard.components = response.data.data || [];
+				const authStore = useAuthStore();
+				const searchStore = useSearchStore();
+
+				if (authStore.currentPath === 'search-result') {
+					this.cityDashboard.components = await searchStore.getAllSearchComponents()
+				}
+				else {
+					// 針對目前index 取得不分city的資料
+					const response = await http.get(`/dashboard/${this.currentDashboard.index}`);
+					this.cityDashboard.components = response.data.data || [];
+				}
 				this.filterCurrentDashboardContent();
 			} catch (error) {
 				console.error("Error getting dashboard index data:", error);

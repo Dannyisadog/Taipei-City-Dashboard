@@ -178,7 +178,8 @@ router.beforeEach((to) => {
 	// Pass in route info to contentStore if the path starts with /dashboard or /mapview
 	if (
 		to.path.toLowerCase() === "/dashboard" ||
-		to.path.toLowerCase() === "/mapview"
+		to.path.toLowerCase() === "/mapview" || 
+		to.path.toLowerCase() === "/search-result"
 	) {
 		contentStore.clearEditDashboard();
 		contentStore.setRouteParams(to.path, to.query.index, to.query.city);

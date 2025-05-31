@@ -24,15 +24,13 @@ export const useSearchStore = defineStore("search", {
 	
 	getters: {
 		// Get search parameters for API calls
-		searchParams: (state) => {
-			const {selectedDepartments} = state;
-				
+		searchParams() {
 			return {
-				keyword: state.searchKeyword,
-				topics: state.selectedTopics,
-				departments: selectedDepartments,
-				city: state.selectedCity
-			};
+				keyword: this.searchKeyword,
+				topics: this.selectedTopics,
+				departments: this.selectedDepartments,
+				city: this.selectedCity
+			}
 		}
 	},
 	
@@ -64,6 +62,31 @@ export const useSearchStore = defineStore("search", {
 			this.searchKeyword = keyword;
 		},
 
+		async getAllSearchComponents() {
+			const contentStore = useContentStore();
+			
+			const topicsToSearch = this.selectedTopics.length > 0 ? this.selectedTopics : this.allTopics;
+			
+			const targetIndices = [];
+			
+			const currnetDashboard = contentStore.dashboards.get(this.selectedCity);
+			if (currnetDashboard == null) return []
+
+			currnetDashboard.forEach(dashboard => {
+				if (topicsToSearch.includes(dashboard.name)) {
+					targetIndices.push(dashboard.index);
+				}
+			});
+			
+			const uniqueIndices = [...new Set(targetIndices)];
+			
+			const promises = uniqueIndices.map(index => 
+				http.get(`/dashboard/${index}`)
+			);
+			const results = await Promise.all(promises);
+			return results.flatMap(response => response.data.data);
+		},
+
 		// open search offcanvas
 		openSearchOffcanvas() {
 			this.searchOffcanvas = true;
@@ -93,15 +116,27 @@ export const useSearchStore = defineStore("search", {
 				this.selectedDepartments.push(departmentName);
 			}
 		},
+
+		// 清空關鍵字
+		clearSearchKeyword() {
+			this.searchKeyword = "";
+		},
+
+		// 清空所有選擇
+		clearAllFilters() {
+			this.selectedTopics = [];
+			this.selectedDepartments = [];
+			this.selectedCity = "";
+		},
 		
-		// Set selected city (single selection)
+		// 設定選擇的城市
 		setSelectedCity(cityValue) {
 			this.selectedCity = cityValue;
 			// 清空先前的選擇
 			this.selectedTopics = [];
 			this.selectedDepartments = [];
 		},
-		
+
 		// Remove selected item
 		removeSelectedItem(item) {
 			if (item.type === "topic") {
@@ -115,14 +150,6 @@ export const useSearchStore = defineStore("search", {
 					this.selectedDepartments.splice(index, 1);
 				}
 			}
-		},
-		
-		// Clear all filters
-		clearAllFilters() {
-			this.selectedTopics = [];
-			this.selectedDepartments = [];
-			this.selectedCity = "";
-			this.searchKeyword = "";
 		},
 	}
 }); 

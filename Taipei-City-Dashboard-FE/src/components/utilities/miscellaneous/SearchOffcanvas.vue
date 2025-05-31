@@ -111,8 +111,7 @@ const departmentTags = computed(() => {
 
 const handleClose = () => {
 	searchStore.closeSearchOffcanvas()
-	// Reset local state to store state (discard changes)
-	initializeLocalState();
+	searchStore.clearAllFilters();
 };
 
 const toggleTopic = (topicName) => {
@@ -157,6 +156,7 @@ const clearAllFilters = () => {
 	localSelectedCity.value = "";
 	localSelectedTopics.value = [];
 	localSelectedDepartments.value = [];
+	searchStore.clearAllFilters();
 };
 
 const syncToStore = () => {
@@ -168,6 +168,7 @@ const syncToStore = () => {
 const startSearch = () => {
 	syncToStore();
 	router.push("/search-result");
+	searchStore.closeSearchOffcanvas();
 };
 
 const isTopicSelected = (topicName) => localSelectedTopics.value.includes(topicName);
