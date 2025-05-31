@@ -37,11 +37,6 @@ export const useSearchStore = defineStore("search", {
 	},
 	
 	actions: {
-		/* Utility functions to access loading and error states in contentStore */
-		setLoading(state) {
-			const contentStore = useContentStore();
-			contentStore.loading = state ? true : false;
-		},
 		async setupAllSource() {
 			const response = await http.get(`/component/`);
 			const sources = response.data.data.map(item => item.source).filter(Boolean);
@@ -67,6 +62,16 @@ export const useSearchStore = defineStore("search", {
 		// Set search keyword
 		setSearchKeyword(keyword) {
 			this.searchKeyword = keyword;
+		},
+
+		// open search offcanvas
+		openSearchOffcanvas() {
+			this.searchOffcanvas = true;
+		},
+
+		// close search offcanvas
+		closeSearchOffcanvas() {
+			this.searchOffcanvas = false;
 		},
 		
 		// Toggle topic selection by name

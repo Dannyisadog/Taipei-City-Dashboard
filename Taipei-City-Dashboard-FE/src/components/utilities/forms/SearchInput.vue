@@ -56,7 +56,7 @@ const handleKeyPress = (event) => {
       <!-- Search button -->
       <button
         class="search-input-button"
-        @click="searchStore.searchOffcanvas = true"
+        @click="searchStore.openSearchOffcanvas"
       >
         <span>tune</span>
       </button>

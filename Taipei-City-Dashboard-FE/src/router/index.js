@@ -11,6 +11,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useContentStore } from "../store/contentStore";
 import { useMapStore } from "../store/mapStore";
+import { useSearchStore } from "../store/searchStore";
 import { useAuthStore } from "../store/authStore";
 import { useAdminStore } from "../store/adminStore";
 import DashboardView from "../views/DashboardView.vue";
@@ -169,6 +170,11 @@ router.beforeEach((to) => {
 router.beforeEach((to) => {
 	const contentStore = useContentStore();
 	const mapStore = useMapStore();
+	const searchStore = useSearchStore();
+
+	// close search offcanvas
+	searchStore.closeSearchOffcanvas();
+
 	// Pass in route info to contentStore if the path starts with /dashboard or /mapview
 	if (
 		to.path.toLowerCase() === "/dashboard" ||

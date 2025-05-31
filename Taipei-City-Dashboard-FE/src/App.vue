@@ -184,6 +184,7 @@ onBeforeUnmount(() => {
       <ComponentSideBar />
       <div class="app-content-main">
         <RouterView />
+        <SearchOffcanvas />
       </div>
     </div>
     <div v-else>

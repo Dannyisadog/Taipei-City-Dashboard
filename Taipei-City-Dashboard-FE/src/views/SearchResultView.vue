@@ -98,10 +98,6 @@ function handleMoreInfo(item) {
 	dialogStore.showMoreInfo(item);
 }
 
-function handleOpenSearchOffcanvas() {
-	searchStore.searchOffcanvas = true;
-}
-
 function goBack() {
 	router.back();
 }
@@ -191,7 +187,7 @@ onBeforeMount(() => {
         >
         <button
           class="start-search-btn"
-          @click="handleOpenSearchOffcanvas"
+          @click="searchStore.openSearchOffcanvas"
         >
           進階搜尋
         </button>

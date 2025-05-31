@@ -110,7 +110,7 @@ const departmentTags = computed(() => {
 });
 
 const handleClose = () => {
-	searchStore.searchOffcanvas = false;
+	searchStore.closeSearchOffcanvas()
 	// Reset local state to store state (discard changes)
 	initializeLocalState();
 };
@@ -167,7 +167,6 @@ const syncToStore = () => {
 
 const startSearch = () => {
 	syncToStore();
-	searchStore.searchOffcanvas = false;
 	router.push("/search-result");
 };
 
