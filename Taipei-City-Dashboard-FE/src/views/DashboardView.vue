@@ -9,11 +9,13 @@ Testing: Jack Huang (Data Scientist), Ian Huang (Data Analysis Intern)
 <!-- Department of Information Technology, Taipei City Government -->
 
 <script setup>
+import { computed } from "vue";
 import DashboardComponent from "../dashboardComponent/DashboardComponent.vue";
 import router from "../router";
 import { useContentStore } from "../store/contentStore";
 import { useDialogStore } from "../store/dialogStore";
 import { useAuthStore } from "../store/authStore";
+import { useSearchStore } from "../store/searchStore";
 
 import MoreInfo from "../components/dialogs/MoreInfo.vue";
 import ReportIssue from "../components/dialogs/ReportIssue.vue";
@@ -21,6 +23,17 @@ import ReportIssue from "../components/dialogs/ReportIssue.vue";
 const contentStore = useContentStore();
 const dialogStore = useDialogStore();
 const authStore = useAuthStore();
+const searchStore = useSearchStore();
+
+const filteredComponents = computed(() => {
+	const allComponents = contentStore.currentDashboard.components;
+	if (allComponents == null) return []
+		
+	const keyword = searchStore.searchKeyword.toLowerCase();
+	return allComponents.filter((component) => {
+		return component.name.toLowerCase().includes(keyword);
+	});
+});
 
 function handleOpenSettings() {
 	contentStore.editDashboard = JSON.parse(
@@ -56,7 +69,7 @@ function handleMoreInfo(item) {
     class="dashboard"
   >
     <DashboardComponent
-      v-for="item in contentStore.currentDashboard.components"
+      v-for="item in filteredComponents"
       :key="`${item.index}-${item.city}`"
       :config="item"
       mode="half"
@@ -85,7 +98,7 @@ function handleMoreInfo(item) {
           }
         });
 
-        const componentIndex = contentStore.currentDashboard.components.findIndex(
+        const componentIndex = filteredComponents.findIndex(
           (item) => item.id === selectedData.id
         );
 
@@ -99,11 +112,11 @@ function handleMoreInfo(item) {
   </div>
   <!-- 2. Dashboards that have components -->
   <div
-    v-else-if="contentStore.currentDashboard.components?.length !== 0 || contentStore.cityDashboard.components?.length !== 0"
+    v-else-if="filteredComponents?.length !== 0 || contentStore.cityDashboard.components?.length !== 0"
     class="dashboard"
   >
     <DashboardComponent
-      v-for="item in contentStore.currentDashboard.components"
+      v-for="item in filteredComponents"
       :key="`${item.index}-${item.city}`"
       :config="item"
       :info-btn="true"
@@ -150,7 +163,7 @@ function handleMoreInfo(item) {
           }
         });
 
-        const componentIndex = contentStore.currentDashboard.components.findIndex(
+        const componentIndex = filteredComponents.findIndex(
           (item) => item.id === selectedData.id
         );
 
