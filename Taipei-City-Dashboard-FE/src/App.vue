@@ -24,6 +24,7 @@ import NotificationBar from "./components/dialogs/NotificationBar.vue";
 import InitialWarning from "./components/dialogs/InitialWarning.vue";
 import ComponentSideBar from "./components/utilities/bars/ComponentSideBar.vue";
 import LogIn from "./components/dialogs/LogIn.vue";
+import SearchOffcanvas from "./components/utilities/miscellaneous/SearchOffcanvas.vue";
 
 const authStore = useAuthStore();
 const dialogStore = useDialogStore();
@@ -151,6 +152,7 @@ onBeforeUnmount(() => {
       <div class="app-content-main">
         <SettingsBar />
         <RouterView />
+        <SearchOffcanvas />
       </div>
     </div>
     <!-- /admin layouts -->
@@ -208,6 +210,7 @@ onBeforeUnmount(() => {
 
 		&-main {
 			width: 100%;
+			position: relative;
 			display: flex;
 			flex-direction: column;
 		}
