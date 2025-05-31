@@ -12,22 +12,22 @@ const searchStore = useSearchStore();
 const dialogStore = useDialogStore();
 const authStore = useAuthStore();
 
-const searchResults = computed(() => {
-	const params = searchStore.searchParams;
-	
+// 過濾組件
+const filteredComponents = computed(() => {
 	if (!contentStore.cityDashboard.components || !Array.isArray(contentStore.cityDashboard.components)) {
 		return [];
 	}
 	
 	const filteredComponents = contentStore.cityDashboard.components.filter(component => {
+		// 城市過濾
 		if (searchStore.selectedCities.length > 0 && !searchStore.selectedCities.includes(component.city)) {
 			return false;
 		}
 		
-		if (params.topics.length > 0) {
+		// 主題過濾
+		if (searchStore.selectedTopics.length > 0) {
 			const selectedComponentIds = new Set();
 			
-			// 如果有選擇特定城市，則只搜尋那些城市；否則搜尋所有城市
 			const citiesToSearch = searchStore.selectedCities.length > 0 
 				? searchStore.selectedCities 
 				: Array.from(contentStore.dashboards.keys());
@@ -35,7 +35,7 @@ const searchResults = computed(() => {
 			citiesToSearch.forEach(city => {
 				const cityDashboards = contentStore.dashboards.get(city);
 				if (cityDashboards && Array.isArray(cityDashboards)) {
-					params.topics.forEach(topicName => {
+					searchStore.selectedTopics.forEach(topicName => {
 						const dashboard = cityDashboards.find(d => d.name === topicName);
 						if (dashboard && dashboard.components) {
 							dashboard.components.forEach(componentId => {
@@ -51,13 +51,15 @@ const searchResults = computed(() => {
 			}
 		}
 		
-		if (params.departments.length > 0 && !params.departments.includes(component.source)) {
+		// 部門過濾
+		if (searchStore.selectedDepartments.length > 0 && !searchStore.selectedDepartments.includes(component.source)) {
 			return false;
 		}
 		
 		return true;
 	});
 	
+	// 去重
 	const uniqueMap = new Map();
 	const uniqueComponents = filteredComponents.filter(component => {
 		const key = `${component.city}_${component.index}`;
@@ -97,11 +99,11 @@ function handleMoreInfo(item) {
   <div>
     <!-- 1. Filtered Components -->
     <div 
-      v-if="searchResults?.length !== 0"
+      v-if="filteredComponents?.length !== 0"
       class="dashboard"
     >
       <DashboardComponent
-        v-for="item in searchResults"
+        v-for="item in filteredComponents"
         :key="`${item.index}-${item.city}`"
         :config="item"
         :info-btn="true"

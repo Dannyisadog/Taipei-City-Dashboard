@@ -310,7 +310,12 @@ export const useMapStore = defineStore("map", {
 		// 3-1. Add a local geojson as a source in mapbox
 		addGeojsonSource(map_config, data) {
 			if (!["voronoi", "isoline"].includes(map_config.type)) {
-				this.map.addSource(`${map_config.layerId}-source`, {
+				const sourceId = `${map_config.index}-${map_config.type}-${map_config.city}-source`;
+				// 檢查 source 是否已存在，如果存在就先移除
+				if (this.map.getSource(sourceId)) {
+					this.map.removeSource(sourceId);
+				}
+				this.map.addSource(sourceId, {
 					type: "geojson",
 					data: { ...data },
 				});
@@ -333,7 +338,12 @@ export const useMapStore = defineStore("map", {
 				);
 
 				if (map_config.type === "arc") {
-					this.map.addSource(`${map_config.layerId}-source`, {
+					const sourceId = `${map_config.index}-${map_config.type}-${map_config.city}-source`;
+					// 檢查 source 是否已存在，如果存在就先移除
+					if (this.map.getSource(sourceId)) {
+						this.map.removeSource(sourceId);
+					}
+					this.map.addSource(sourceId, {
 						type: "geojson",
 						data: { ...res.data },
 					});
@@ -346,7 +356,12 @@ export const useMapStore = defineStore("map", {
 			} else {
 				try {
 					// 添加源
-					this.map.addSource(`${map_config.layerId}-source`, {
+					const sourceId = `${map_config.index}-${map_config.type}-${map_config.city}-source`;
+					// 檢查 source 是否已存在，如果存在就先移除
+					if (this.map.getSource(sourceId)) {
+						this.map.removeSource(sourceId);
+					}
+					this.map.addSource(sourceId, {
 						type: "vector",
 						scheme: "tms",
 						tolerance: 0,
@@ -357,12 +372,12 @@ export const useMapStore = defineStore("map", {
 		
 					// 監聽錯誤
 					this.map.on('error', (e) => {
-						if (e.sourceId === `${map_config.layerId}-source`) {
+						if (e.sourceId === sourceId) {
 							console.error('Source error:', e);
 
 							// 清理已添加的源（如果存在）
-							if (this.map.getSource(`${map_config.layerId}-source`)) {
-								this.map.removeSource(`${map_config.layerId}-source`);
+							if (this.map.getSource(sourceId)) {
+								this.map.removeSource(sourceId);
 							}
 							// 從 loadingLayers 中移除
 							this.loadingLayers = this.loadingLayers.filter(
@@ -374,7 +389,7 @@ export const useMapStore = defineStore("map", {
 					// 監聽源加載完成
 					const sourceLoaded = new Promise((resolve, reject) => {
 						const checkSource = (e) => {
-							if (e.sourceId === `${map_config.layerId}-source`) {
+							if (e.sourceId === sourceId) {
 								if (e.isSourceLoaded) {
 									this.map.off('sourcedata', checkSource);
 									resolve();
@@ -405,8 +420,9 @@ export const useMapStore = defineStore("map", {
 				} catch (error) {
 					console.error('Failed to add source:', error);
 					// 清理已添加的源（如果存在）
-					if (this.map.getSource(`${map_config.layerId}-source`)) {
-						this.map.removeSource(`${map_config.layerId}-source`);
+					const errorSourceId = `${map_config.index}-${map_config.type}-${map_config.city}-source`;
+					if (this.map.getSource(errorSourceId)) {
+						this.map.removeSource(errorSourceId);
 					}
 					// 從 loadingLayers 中移除
 					this.loadingLayers = this.loadingLayers.filter(
@@ -461,7 +477,7 @@ export const useMapStore = defineStore("map", {
 					...maplayerCommonLayout[`${map_config.type}`],
 					...extra_layout_configs,
 				},
-				source: `${map_config.layerId}-source`,
+				source: `${map_config.index}-${map_config.type}-${map_config.city}-source`,
 			});
 			this.currentLayers.push(map_config.layerId);
 			this.mapConfigs[map_config.layerId] = map_config;
@@ -641,7 +657,12 @@ export const useMapStore = defineStore("map", {
 			}
 
 			// Add source and layer
-			this.map.addSource(`${map_config.layerId}-source`, {
+			const sourceId = `${map_config.index}-${map_config.type}-${map_config.city}-source`;
+			// 檢查 source 是否已存在，如果存在就先移除
+			if (this.map.getSource(sourceId)) {
+				this.map.removeSource(sourceId);
+			}
+			this.map.addSource(sourceId, {
 				type: "geojson",
 				data: { ...voronoi_source },
 			});
@@ -740,7 +761,12 @@ export const useMapStore = defineStore("map", {
 			}
 
 			// Step 3: Add source and layer
-			this.map.addSource(`${map_config.layerId}-source`, {
+			const sourceId = `${map_config.index}-${map_config.type}-${map_config.city}-source`;
+			// 檢查 source 是否已存在，如果存在就先移除
+			if (this.map.getSource(sourceId)) {
+				this.map.removeSource(sourceId);
+			}
+			this.map.addSource(sourceId, {
 				type: "geojson",
 				data: { ...isoline_data },
 			});
@@ -1255,10 +1281,11 @@ export const useMapStore = defineStore("map", {
 			const features = [];
 
 			if (layerSourceType === "geojson") {
+				// 從 layerId 重構 sourceId
+				const layerId = this.currentVisibleLayers[targetLayer];
+				const sourceId = `${layerId}-source`;
 				features.push(
-					...this.map.getSource(
-						`${this.currentVisibleLayers[targetLayer]}-source`
-					)._data.features
+					...this.map.getSource(sourceId)._data.features
 				);
 			} else {
 				const res = await axios.get(
@@ -1303,8 +1330,10 @@ export const useMapStore = defineStore("map", {
 		clearOnlyLayers() {
 			this.currentLayers.forEach((element) => {
 				this.map.removeLayer(element);
-				if (this.map.getSource(`${element}-source`)) {
-					this.map.removeSource(`${element}-source`);
+				// 從 layerId 重構 sourceId
+				const sourceId = `${element}-source`;
+				if (this.map.getSource(sourceId)) {
+					this.map.removeSource(sourceId);
 				}
 			});
 			this.currentLayers = [];
