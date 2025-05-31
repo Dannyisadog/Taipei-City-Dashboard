@@ -4,10 +4,12 @@ import MapContainer from "../map/MapContainer.vue";
 import { useSearchStore } from "../../store/searchStore";
 import { useContentStore } from "../../store/contentStore";
 import { useMapStore } from "../../store/mapStore";
+import { useDialogStore } from "../../store/dialogStore";
 
 const searchStore = useSearchStore();
 const contentStore = useContentStore();
 const mapStore = useMapStore();
+const dialogStore = useDialogStore();
 
 // 過濾出有地圖配置的組件
 const mapComponents = computed(() => {
@@ -153,6 +155,15 @@ function clearMapLayers(components) {
 watch(mapComponents, (newComponents, oldComponents) => {
 	// 清除舊的圖層
 	clearMapLayers(oldComponents);
+	
+	// 檢查是否有地圖配置
+	if (newComponents.length === 0) {
+		dialogStore.showNotification(
+			"info",
+			"本次搜尋沒有空間資料，不會渲染地圖"
+		);
+		return;
+	}
 	
 	// 加載新的圖層
 	loadMapLayers();
