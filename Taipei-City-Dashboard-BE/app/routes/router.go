@@ -75,13 +75,14 @@ func configureComponentRoutes() {
 	componentRoutes := RouterGroup.Group("/component")
 
 	componentRoutes.Use(middleware.LimitAPIRequests(global.ComponentLimitAPIRequestsTimes, global.LimitRequestsDuration))
-	componentRoutes.Use(middleware.LimitTotalRequests(global.ComponentLimitTotalRequestsTimes, global.LimitRequestsDuration))
+	componentRoutes.Use(middleware.LimitTotalRequests(global.ComponentLimitTotalRequestsTimes, global.TokenExpirationDuration))
 	{
 		componentRoutes.GET("/", controllers.GetAllComponents)
 		componentRoutes.GET("/:id", controllers.GetComponentByID)
 		componentRoutes.GET("/:id/all", controllers.GetComponentByIDAll)
 		componentRoutes.GET("/:id/chart", controllers.GetComponentChartData)
 		componentRoutes.GET("/:id/history", controllers.GetComponentHistoryData)
+		componentRoutes.GET("/sources", controllers.GetDistinctSources)
 	}
 	componentRoutes.Use(middleware.IsSysAdm())
 	{

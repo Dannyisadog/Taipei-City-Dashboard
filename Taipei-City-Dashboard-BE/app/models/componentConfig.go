@@ -428,3 +428,12 @@ func DeleteComponent(id int, index string, mapConfigIDs pq.Int64Array) (deleteCh
 
 	return true, true, nil
 }
+
+func GetDistinctSources() ([]string, error) {
+	var sources []string
+	err := DBManager.Table("query_charts").Distinct().Pluck("source", &sources).Error
+	if err != nil {
+		return nil, err
+	}
+	return sources, nil
+}
