@@ -101,7 +101,7 @@ const departmentTags = computed(() => {
 			}
 		});
 	}
-	
+
 	// 返回所有部門，標記是否可用
 	return allSources.map(source => ({
 		name: source,

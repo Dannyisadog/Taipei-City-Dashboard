@@ -128,7 +128,7 @@ onBeforeMount(() => {
 
     <!-- 1. Filtered Components -->
     <div 
-      v-if="searchResults?.length !== 0 || contentStore.cityDashboard.components?.length !== 0"
+      v-if="searchResults?.length !== 0"
       class="dashboard"
     >
       <DashboardComponent
@@ -306,15 +306,12 @@ onBeforeMount(() => {
 			flex-direction: column;
 			align-items: center;
 			justify-content: center;
+			row-gap: 45px;
 
 			span {
 				margin-bottom: var(--font-ms);
 				font-family: var(--font-icon);
 				font-size: 2rem;
-			}
-
-			button {
-				color: var(--color-highlight);
 			}
 
 			div {
