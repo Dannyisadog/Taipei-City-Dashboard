@@ -1,119 +1,81 @@
 <script setup>
-import { ref, computed } from "vue";
-import { useDialogStore } from "../../../store/dialogStore";
+import { computed } from "vue";
+import { useSearchStore } from "../../../store/searchStore";
+import { useContentStore } from "../../../store/contentStore";
 
-const dialogStore = useDialogStore();
+const searchStore = useSearchStore();
+const contentStore = useContentStore();
 
-// 分類標籤
-const categoryTags = ref([
-	{ id: "transport-system", name: "捷運系統", selected: true },
-	{ id: "shared-bike", name: "共享單車", selected: false },
-	{ id: "urban-planning", name: "都市規劃", selected: false },
-	{ id: "city-construction", name: "城市建設", selected: false },
-	{ id: "road-traffic", name: "道路交通", selected: false },
-	{ id: "public-service", name: "為民服務", selected: true },
-	{ id: "women-children", name: "婦幼資源", selected: false },
-	{ id: "climate-change", name: "氣候變遷", selected: false },
-	{ id: "disaster-prevention", name: "防災都市", selected: false },
-	{ id: "elderly-care", name: "長照關懷", selected: false },
-	{ id: "geo-info", name: "圖資資訊", selected: false },
-	{ id: "practical-transport", name: "務實交通", selected: false }
-]);
+const selectedItems = computed(() => searchStore.selectedItems);
 
-const departmentTags = ref([
-	{ id: "transport", name: "交通局", selected: false },
-	{ id: "public-works", name: "工務局", selected: false },
-	{ id: "police", name: "警察局", selected: false },
-	{ id: "information", name: "資訊局", selected: true },
-	{ id: "urban-dev", name: "都發局", selected: false },
-	{ id: "fire", name: "消防局", selected: false },
-	{ id: "research", name: "研考會", selected: false },
-	{ id: "land", name: "地政局", selected: false },
-	{ id: "health", name: "衛生局", selected: false },
-	{ id: "civil-affairs", name: "民政局", selected: false },
-	{ id: "environmental", name: "環保局", selected: false },
-	{ id: "disease-control", name: "疾管署", selected: false },
-	{ id: "industry", name: "產業局", selected: false },
-	{ id: "social", name: "社會局", selected: false },
-	{ id: "accounting", name: "主計處", selected: false },
-	{ id: "environment-dept", name: "環境部", selected: false },
-	{ id: "finance", name: "財政局", selected: false },
-	{ id: "youth", name: "青年局", selected: false },
-	{ id: "metro", name: "捷運公司", selected: false }
-]);
-
-// 計算已選擇的項目
-const selectedItems = computed(() => {
-	const items = [];
+const topicTags = computed(() => {
+	const uniqueNames = new Set();
 	
-	// 添加已選擇的分類
-	categoryTags.value.forEach(tag => {
-		if (tag.selected) {
-			items.push({ 
-				type: "category", 
-				id: tag.id, 
-				name: tag.name 
+	// Extract all unique names from the dashboards Map
+	for (const [, dashboards] of contentStore.dashboards.entries()) {
+		if (Array.isArray(dashboards)) {
+			dashboards.forEach(dashboard => {
+				if (dashboard.name) {
+					uniqueNames.add(dashboard.name);
+				}
 			});
 		}
-	});
+	}
 	
-	// 添加已選擇的單位
-	departmentTags.value.forEach(tag => {
-		if (tag.selected) {
-			items.push({ 
-				type: "department", 
-				id: tag.id, 
-				name: tag.name 
-			});
-		}
-	});
+	// Convert Set to array and return as string array
+	return Array.from(uniqueNames);
+});
+
+// TODO: 更改資料來源
+const departmentTags = computed(() => {
+	const uniqueSources = new Set();
 	
-	return items;
+	// Extract all unique sources from cityDashboard.components
+	if (contentStore.cityDashboard.components && Array.isArray(contentStore.cityDashboard.components)) {
+		contentStore.cityDashboard.components.forEach(component => {
+			if (component.source) {
+				uniqueSources.add(component.source);
+			}
+		});
+	}
+	
+	// Convert Set to array and return as string array
+	return Array.from(uniqueSources);
 });
 
 const handleClose = () => {
-	dialogStore.dialogs.searchOffcanvas = false;
+	searchStore.searchOffcanvas = false;
+	searchStore.clearAllFilters();
 };
 
-const toggleCategoryTag = (tagId) => {
-	const tag = categoryTags.value.find(t => t.id === tagId);
-	if (tag) {
-		tag.selected = !tag.selected;
-	}
+const toggleTopic = (topicName) => {
+	searchStore.toggleTopic(topicName);
 };
 
-const toggleDepartmentTag = (tagId) => {
-	const tag = departmentTags.value.find(t => t.id === tagId);
-	if (tag) {
-		tag.selected = !tag.selected;
-	}
+const toggleDepartment = (departmentName) => {
+	searchStore.toggleDepartment(departmentName);
 };
 
 const removeSelectedItem = (item) => {
-	if (item.type === "category") {
-		const tag = categoryTags.value.find(t => t.id === item.id);
-		if (tag) tag.selected = false;
-	} else if (item.type === "department") {
-		const tag = departmentTags.value.find(t => t.id === item.id);
-		if (tag) tag.selected = false;
-	}
+	searchStore.removeSelectedItem(item);
 };
 
 const clearAllFilters = () => {
-	categoryTags.value.forEach(tag => tag.selected = false);
-	departmentTags.value.forEach(tag => tag.selected = false);
+	searchStore.clearAllFilters();
 };
 
 const startSearch = () => {
-	// 執行搜索邏輯
-	handleClose();
+	searchStore.performSearch();
 };
+
+const isTopicSelected = (topicName) => searchStore.selectedTopics.includes(topicName);
+const isDepartmentSelected = (departmentName) => searchStore.selectedDepartments.includes(departmentName);
 </script>
 
 <template>
   <Transition name="offcanvas">
     <div
-      v-if="dialogStore.dialogs.searchOffcanvas"
+      v-if="searchStore.searchOffcanvas"
       class="search-offcanvas"
     >	
       <!-- Offcanvas panel -->
@@ -165,12 +127,12 @@ const startSearch = () => {
 			
             <div class="tag-group">
               <button
-                v-for="tag in categoryTags"
-                :key="tag.id"
-                :class="['filter-tag', { selected: tag.selected }]"
-                @click="toggleCategoryTag(tag.id)"
+                v-for="topicName in topicTags"
+                :key="topicName"
+                :class="['filter-tag', { selected: isTopicSelected(topicName) }]"
+                @click="toggleTopic(topicName)"
               >
-                {{ tag.name }}
+                {{ topicName }}
               </button>
             </div>
           </div>
@@ -184,12 +146,12 @@ const startSearch = () => {
 			
             <div class="tag-group">
               <button
-                v-for="tag in departmentTags"
-                :key="tag.id"
-                :class="['filter-tag', { selected: tag.selected }]"
-                @click="toggleDepartmentTag(tag.id)"
+                v-for="departmentName in departmentTags"
+                :key="departmentName"
+                :class="['filter-tag', { selected: isDepartmentSelected(departmentName) }]"
+                @click="toggleDepartment(departmentName)"
               >
-                {{ tag.name }}
+                {{ departmentName }}
               </button>
             </div>
           </div>
@@ -199,15 +161,16 @@ const startSearch = () => {
         <div class="search-offcanvas-footer">
           <button
             class="clear-all-btn"
-            @click="clearAllFilters"
+            @click="handleClose"
           >
             清除全部
           </button>
           <button
             class="start-search-btn"
+            :disabled="searchStore.isSearching"
             @click="startSearch"
           >
-            開始搜尋
+            {{ searchStore.isSearching ? '搜尋中...' : '開始搜尋' }}
           </button>
         </div>
       </div>
@@ -217,7 +180,7 @@ const startSearch = () => {
   <!-- Backdrop -->
   <Transition name="offcanvas-backdrop">
     <div
-      v-if="dialogStore.dialogs.searchOffcanvas"
+      v-if="searchStore.searchOffcanvas"
       class="search-offcanvas-backdrop"
       @click.stop="handleClose"
     />

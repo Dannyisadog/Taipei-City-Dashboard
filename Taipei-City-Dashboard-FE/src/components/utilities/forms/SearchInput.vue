@@ -1,41 +1,25 @@
 <script setup>
-import { ref } from "vue";
-import { useDialogStore } from "../../../store/dialogStore";
+import { computed } from "vue";
+import { useSearchStore } from "../../../store/searchStore";
 
-const searchValue = ref("");
-const dialogStore = useDialogStore();
+const searchStore = useSearchStore();
 
-defineProps({
-	placeholder: {
-		type: String,
-		default: "搜尋關鍵字",
+const searchValue = computed({
+	get() {
+		return searchStore.searchKeyword;
 	},
-	disabled: {
-		type: Boolean,
-		default: false,
-	},
+	set(value) {
+		searchStore.setSearchKeyword(value);
+	}
 });
 
-const emit = defineEmits(["search", "input", "clear"]);
-
-const handleSearch = () => {
-	dialogStore.showDialog("searchOffcanvas");
-	emit("search", searchValue.value);
-};
-
-const handleInput = () => {
-	emit("input", searchValue.value);
-};
-
 const handleClear = () => {
-	searchValue.value = "";
-	emit("clear");
-	emit("input", "");
+	searchStore.setSearchKeyword("");
 };
 
 const handleKeyPress = (event) => {
 	if (event.key === "Enter") {
-		handleSearch();
+		// TODO:
 	}
 };
 </script>
@@ -52,9 +36,8 @@ const handleKeyPress = (event) => {
       <input
         v-model="searchValue"
         type="text"
-        :placeholder="placeholder"
+        placeholder="搜尋關鍵字"
         class="search-input-field"
-        @input="handleInput"
         @keypress="handleKeyPress"
       >
 
@@ -70,7 +53,7 @@ const handleKeyPress = (event) => {
       <!-- Search button -->
       <button
         class="search-input-button"
-        @click="handleSearch"
+        @click="searchStore.searchOffcanvas = true"
       >
         <span>tune</span>
       </button>
