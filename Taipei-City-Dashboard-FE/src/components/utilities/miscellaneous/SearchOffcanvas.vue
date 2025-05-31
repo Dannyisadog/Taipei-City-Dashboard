@@ -175,7 +175,6 @@ const isDepartmentSelected = (departmentName) => localSelectedDepartments.value.
 
 onMounted(async () => {
 	await searchStore.setupAllSource();
-	searchStore.setupAllTopics();
 });
 </script>
 

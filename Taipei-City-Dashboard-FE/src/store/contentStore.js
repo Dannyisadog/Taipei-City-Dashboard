@@ -109,7 +109,7 @@ export const useContentStore = defineStore("content", {
 			this.setCurrentDashboardAllContent();
 		},
 		// 2. Call an API to get all dashboard info and reroute the user to the first dashboard in the list
-		async setDashboards(onlyDashboard = false) {
+		async setDashboards() {
 			const response = await http.get(`/dashboard/`);
 			const data = response.data.data || {};
 
@@ -138,8 +138,6 @@ export const useContentStore = defineStore("content", {
 					}
 				}
 			});
-
-			if (onlyDashboard) return;
 
 			// 2-1. If the current path is /dashboard or /mapview, redirect to the first dashboard
 			if (!this.currentDashboard.index) {

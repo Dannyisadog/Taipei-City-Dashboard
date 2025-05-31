@@ -186,7 +186,8 @@ router.beforeEach((to) => {
 		to.path.toLowerCase() === "/component" ||
 		to.name === "component-info"
 	) {
-		contentStore.setDashboards(true);
+		contentStore.setDashboards();
+		searchStore.setupAllTopics();
 	} else {
 		contentStore.clearCurrentDashboard();
 	}
