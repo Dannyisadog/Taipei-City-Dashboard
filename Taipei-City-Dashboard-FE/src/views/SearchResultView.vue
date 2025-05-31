@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeMount } from "vue";
+import { computed } from "vue";
 import { useRouter } from "vue-router";
 import DashboardComponent from "../dashboardComponent/DashboardComponent.vue";
 import { useContentStore } from "../store/contentStore";
@@ -20,16 +20,12 @@ const authStore = useAuthStore();
 const searchResults = computed(() => {
 	const params = searchStore.searchParams;
 	
-	if (!searchStore.searchParams.keyword && !params.city && params.topics.length === 0 && params.departments.length === 0) {
-		return [];
-	}
-	
 	if (!contentStore.cityDashboard.components || !Array.isArray(contentStore.cityDashboard.components)) {
 		return [];
 	}
 	
 	const filteredComponents = contentStore.cityDashboard.components.filter(component => {
-		if (searchStore.selectedCity && component.city !== searchStore.selectedCity) {
+		if (searchStore.selectedCities.length > 0 && !searchStore.selectedCities.includes(component.city)) {
 			return false;
 		}
 		
@@ -43,18 +39,23 @@ const searchResults = computed(() => {
 		}
 		
 		if (params.topics.length > 0) {
-			const cityDashboards = contentStore.dashboards.get(searchStore.selectedCity);
-			
-			if (!cityDashboards || !Array.isArray(cityDashboards)) {
-				return false;
-			}
-			
 			const selectedComponentIds = new Set();
-			params.topics.forEach(topicName => {
-				const dashboard = cityDashboards.find(d => d.name === topicName);
-				if (dashboard && dashboard.components) {
-					dashboard.components.forEach(componentId => {
-						selectedComponentIds.add(componentId);
+			
+			// 如果有選擇特定城市，則只搜尋那些城市；否則搜尋所有城市
+			const citiesToSearch = searchStore.selectedCities.length > 0 
+				? searchStore.selectedCities 
+				: Array.from(contentStore.dashboards.keys());
+			
+			citiesToSearch.forEach(city => {
+				const cityDashboards = contentStore.dashboards.get(city);
+				if (cityDashboards && Array.isArray(cityDashboards)) {
+					params.topics.forEach(topicName => {
+						const dashboard = cityDashboards.find(d => d.name === topicName);
+						if (dashboard && dashboard.components) {
+							dashboard.components.forEach(componentId => {
+								selectedComponentIds.add(componentId);
+							});
+						}
 					});
 				}
 			});
@@ -98,16 +99,6 @@ function handleMoreInfo(item) {
 function goBack() {
 	router.back();
 }
-
-onBeforeMount(() => {
-	const params = searchStore.searchParams;
-	
-	// no search conditions
-	if (!params.keyword && !params.city && params.topics.length === 0 && params.departments.length === 0) {
-		router.push("/dashboard");
-		return;
-	}
-});
 </script>
 
 <template>

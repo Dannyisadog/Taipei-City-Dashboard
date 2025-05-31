@@ -16,8 +16,8 @@ export const useSearchStore = defineStore("search", {
 		selectedTopics: [],
 		// Selected department names  
 		selectedDepartments: [],
-		// Selected city (single selection)
-		selectedCity: "",
+		// Selected cities (multiple selection)
+		selectedCities: [],
 		// Search offcanvas visibility
 		searchOffcanvas: false,
 	}),
@@ -29,7 +29,7 @@ export const useSearchStore = defineStore("search", {
 				keyword: this.searchKeyword,
 				topics: this.selectedTopics,
 				departments: this.selectedDepartments,
-				city: this.selectedCity
+				cities: this.selectedCities
 			}
 		}
 	},
@@ -66,15 +66,19 @@ export const useSearchStore = defineStore("search", {
 			const contentStore = useContentStore();
 			
 			const topicsToSearch = this.selectedTopics.length > 0 ? this.selectedTopics : this.allTopics;
+			const citiesToSearch = this.selectedCities.length > 0 ? this.selectedCities : Array.from(contentStore.dashboards.keys());
 			
 			const targetIndices = [];
 			
-			const currnetDashboard = contentStore.dashboards.get(this.selectedCity);
-			if (currnetDashboard == null) return []
-
-			currnetDashboard.forEach(dashboard => {
-				if (topicsToSearch.includes(dashboard.name)) {
-					targetIndices.push(dashboard.index);
+			// 遍歷選中的城市
+			citiesToSearch.forEach(city => {
+				const cityDashboards = contentStore.dashboards.get(city);
+				if (cityDashboards) {
+					cityDashboards.forEach(dashboard => {
+						if (topicsToSearch.includes(dashboard.name)) {
+							targetIndices.push(dashboard.index);
+						}
+					});
 				}
 			});
 			
@@ -84,7 +88,18 @@ export const useSearchStore = defineStore("search", {
 				http.get(`/dashboard/${index}`)
 			);
 			const results = await Promise.all(promises);
-			return results.flatMap(response => response.data.data);
+			
+			// 從返回的結果中過濾出符合選中城市的組件
+			const allComponents = results.flatMap(response => response.data.data);
+			
+			// 如果有選擇特定城市，則過濾組件
+			if (this.selectedCities.length > 0) {
+				return allComponents.filter(component => 
+					this.selectedCities.includes(component.city)
+				);
+			}
+			
+			return allComponents;
 		},
 
 		// open search offcanvas
@@ -117,6 +132,16 @@ export const useSearchStore = defineStore("search", {
 			}
 		},
 
+		// Toggle city selection
+		toggleCity(cityValue) {
+			const index = this.selectedCities.indexOf(cityValue);
+			if (index > -1) {
+				this.selectedCities.splice(index, 1);
+			} else {
+				this.selectedCities.push(cityValue);
+			}
+		},
+
 		// 清空關鍵字
 		clearSearchKeyword() {
 			this.searchKeyword = "";
@@ -126,15 +151,7 @@ export const useSearchStore = defineStore("search", {
 		clearAllFilters() {
 			this.selectedTopics = [];
 			this.selectedDepartments = [];
-			this.selectedCity = "";
-		},
-		
-		// 設定選擇的城市
-		setSelectedCity(cityValue) {
-			this.selectedCity = cityValue;
-			// 清空先前的選擇
-			this.selectedTopics = [];
-			this.selectedDepartments = [];
+			this.selectedCities = [];
 		},
 
 		// Remove selected item
@@ -148,6 +165,11 @@ export const useSearchStore = defineStore("search", {
 				const index = this.selectedDepartments.indexOf(item.name);
 				if (index > -1) {
 					this.selectedDepartments.splice(index, 1);
+				}
+			} else if (item.type === "city") {
+				const index = this.selectedCities.indexOf(item.id);
+				if (index > -1) {
+					this.selectedCities.splice(index, 1);
 				}
 			}
 		},
