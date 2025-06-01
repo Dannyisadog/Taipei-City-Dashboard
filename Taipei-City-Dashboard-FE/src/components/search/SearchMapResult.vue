@@ -118,7 +118,7 @@ function handleLayerToggle(shouldShow, map_config) {
 }
 
 // 監聽搜尋條件變化，動態更新圖層
-watchDebounced(() =>props.filteredComponents, () => {
+watchDebounced([() => props.filteredComponents], () => {
 	const newComponents = mapComponents.value;
 	const newLayerIds = new Set();
 
