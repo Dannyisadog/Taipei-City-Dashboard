@@ -1,71 +1,26 @@
 <script setup>
-import { watch, onUnmounted, computed } from "vue";
+import { onUnmounted, computed } from "vue";
+import { watchDebounced } from '@vueuse/core'
 import MapContainer from "../map/MapContainer.vue";
-import { useSearchStore } from "../../store/searchStore";
-import { useContentStore } from "../../store/contentStore";
 import { useMapStore } from "../../store/mapStore";
 import { useDialogStore } from "../../store/dialogStore";
 
-const searchStore = useSearchStore();
-const contentStore = useContentStore();
+const props = defineProps({
+	filteredComponents: {
+		type: Array,
+		default: () => []
+	}
+});
+
 const mapStore = useMapStore();
 const dialogStore = useDialogStore();
 
-// 過濾出有地圖配置的組件
+// 處理地圖相關的組件：只保留有地圖配置的組件，並處理 map_config 去重
 const mapComponents = computed(() => {
-	if (!contentStore.cityDashboard.components || !Array.isArray(contentStore.cityDashboard.components)) {
-		return [];
-	}
-	
-	const filteredComponents = contentStore.cityDashboard.components.filter(component => {
-		// 城市過濾
-		if (searchStore.selectedCities.length > 0 && !searchStore.selectedCities.includes(component.city)) {
-			return false;
-		}
-		
-		// 主題過濾
-		if (searchStore.selectedTopics.length > 0) {
-			const selectedComponentIds = new Set();
-			
-			const citiesToSearch = searchStore.selectedCities.length > 0 
-				? searchStore.selectedCities 
-				: Array.from(contentStore.dashboards.keys());
-			
-			citiesToSearch.forEach(city => {
-				const cityDashboards = contentStore.dashboards.get(city);
-				if (cityDashboards && Array.isArray(cityDashboards)) {
-					searchStore.selectedTopics.forEach(topicName => {
-						const dashboard = cityDashboards.find(d => d.name === topicName);
-						if (dashboard && dashboard.components) {
-							dashboard.components.forEach(componentId => {
-								selectedComponentIds.add(componentId);
-							});
-						}
-					});
-				}
-			});
-			
-			if (!selectedComponentIds.has(component.id)) {
-				return false;
-			}
-		}
-		
-		// 部門過濾
-		if (searchStore.selectedDepartments.length > 0 && !searchStore.selectedDepartments.includes(component.source)) {
-			return false;
-		}
-		
-		// 空間資料過濾（地圖視圖中這個過濾條件總是隱含的，因為只顯示有地圖配置的組件）
-		// 但為了保持一致性，我們仍然檢查這個條件
-		if (searchStore.selectedMapData && !(component.map_config && component.map_config[0] !== null && component.map_config?.length > 0)) {
-			return false;
-		}
-		
-		return true;
-	});
-	
-	// 只返回有地圖配置的組件
-	const mapConfigComponents = filteredComponents.filter(item => item.map_config && item.map_config[0]);
+	// 只保留有地圖配置的組件
+	const mapConfigComponents = props.filteredComponents.filter(item => 
+		item.map_config && item.map_config[0] !== null && item.map_config?.length > 0
+	);
 	
 	// 收集所有 map_config 項目
 	const allMapConfigs = [];
@@ -101,22 +56,6 @@ const mapComponents = computed(() => {
 	
 	return uniqueComponents;
 });
-
-// 加載地圖圖層的函數
-function loadMapLayers() {
-	const components = mapComponents.value;
-	if (components && components.length > 0) {
-		components.forEach(component => {
-			if (component.map_config) {
-				try {
-					mapStore.addToMapLayerList(component.map_config);
-				} catch (error) {
-					console.error(`Failed to load map layer for component ${component.id}:`, error);
-				}
-			}
-		});
-	}
-}
 
 // 清除地圖圖層的函數
 function clearMapLayers(components) {
@@ -157,23 +96,77 @@ function clearMapLayers(components) {
 	}
 }
 
-// 當搜尋結果變化時，自動加載所有地圖圖層
-watch(mapComponents, (newComponents, oldComponents) => {
-	// 清除舊的圖層
-	clearMapLayers(oldComponents);
+// 追蹤當前已加載的圖層
+let currentLoadedLayers = new Set();
+
+// 處理圖層切換的函數，類似 MapView.vue 的 handleToggle
+function handleLayerToggle(shouldShow, map_config) {
+	const layerId = `${map_config.index}-${map_config.type}-${map_config.city}`;
 	
-	// 檢查是否有地圖配置
-	if (newComponents.length === 0) {
+	if (shouldShow) {
+		if (!currentLoadedLayers.has(layerId)) {
+			mapStore.addToMapLayerList([map_config]);
+			currentLoadedLayers.add(layerId);
+		}
+	} else {
+		if (currentLoadedLayers.has(layerId)) {
+			mapStore.clearByParamFilter([map_config]);
+			mapStore.turnOffMapLayerVisibility([map_config]);
+			currentLoadedLayers.delete(layerId);
+		}
+	}
+}
+
+// 監聽搜尋條件變化，動態更新圖層
+watchDebounced(() =>props.filteredComponents, () => {
+	const newComponents = mapComponents.value;
+	const newLayerIds = new Set();
+
+	// 收集新的圖層 ID
+	newComponents.forEach(component => {
+		if (component.map_config && component.map_config[0]) {
+			component.map_config.forEach(mapConfig => {
+				const layerId = `${mapConfig.index}-${mapConfig.type}-${mapConfig.city}`;
+				newLayerIds.add(layerId);
+			});
+		}
+	});
+	
+	// 移除不再需要的圖層
+	currentLoadedLayers.forEach(layerId => {
+		if (!newLayerIds.has(layerId)) {
+			const parts = layerId.split('-');
+			const index = parts[0];
+			const type = parts[1];
+			const city = parts.slice(2).join('-');
+			handleLayerToggle(false, { index, type, city });
+		}
+	});
+	
+	// 添加新的圖層
+	newComponents.forEach(component => {
+		if (component.map_config && component.map_config[0]) {
+			component.map_config.forEach(mapConfig => {
+				const layerId = `${mapConfig.index}-${mapConfig.type}-${mapConfig.city}`;
+				if (!currentLoadedLayers.has(layerId)) {
+					handleLayerToggle(true, mapConfig);
+				}
+			});
+		}
+	});
+	
+	// 如果沒有地圖配置，顯示通知
+	if (newComponents.length === 0 && newLayerIds.size === 0) {
 		dialogStore.showNotification(
 			"info",
 			"本次搜尋沒有空間資料，不會渲染地圖"
 		);
-		return;
 	}
-	
-	// 加載新的圖層
-	loadMapLayers();
-}, { immediate: true });
+}, {
+	 immediate: true,
+	 flush: 'post',
+	 debounce: 300
+});
 
 // 組件卸載時清理圖層
 onUnmounted(() => {

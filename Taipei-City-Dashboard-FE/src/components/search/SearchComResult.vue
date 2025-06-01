@@ -7,66 +7,22 @@ import { useDialogStore } from "../../store/dialogStore";
 import { useAuthStore } from "../../store/authStore";
 import router from "../../router";
 
+const props = defineProps({
+	filteredComponents: {
+		type: Array,
+		default: () => []
+	}
+});
+
 const contentStore = useContentStore();
 const searchStore = useSearchStore();
 const dialogStore = useDialogStore();
 const authStore = useAuthStore();
 
-// 過濾組件
-const filteredComponents = computed(() => {
-	if (!contentStore.cityDashboard.components || !Array.isArray(contentStore.cityDashboard.components)) {
-		return [];
-	}
-	
-	const filteredComponents = contentStore.cityDashboard.components.filter(component => {
-		// 城市過濾
-		if (searchStore.selectedCities.length > 0 && !searchStore.selectedCities.includes(component.city)) {
-			return false;
-		}
-		
-		// 主題過濾
-		if (searchStore.selectedTopics.length > 0) {
-			const selectedComponentIds = new Set();
-			
-			const citiesToSearch = searchStore.selectedCities.length > 0 
-				? searchStore.selectedCities 
-				: Array.from(contentStore.dashboards.keys());
-			
-			citiesToSearch.forEach(city => {
-				const cityDashboards = contentStore.dashboards.get(city);
-				if (cityDashboards && Array.isArray(cityDashboards)) {
-					searchStore.selectedTopics.forEach(topicName => {
-						const dashboard = cityDashboards.find(d => d.name === topicName);
-						if (dashboard && dashboard.components) {
-							dashboard.components.forEach(componentId => {
-								selectedComponentIds.add(componentId);
-							});
-						}
-					});
-				}
-			});
-			
-			if (!selectedComponentIds.has(component.id)) {
-				return false;
-			}
-		}
-		
-		// 部門過濾
-		if (searchStore.selectedDepartments.length > 0 && !searchStore.selectedDepartments.includes(component.source)) {
-			return false;
-		}
-		
-		// 空間資料過濾
-		if (searchStore.selectedMapData && !(component.map_config && component.map_config[0] !== null && component.map_config?.length > 0)) {
-			return false;
-		}
-		
-		return true;
-	});
-	
-	// 去重
+// 對組件去重（相同 index + city 的組合只保留一個）
+const uniqueComponents = computed(() => {
 	const uniqueMap = new Map();
-	const uniqueComponents = filteredComponents.filter(component => {
+	return props.filteredComponents.filter(component => {
 		const key = `${component.city}_${component.index}`;
 		if (!uniqueMap.has(key)) {
 			uniqueMap.set(key, true);
@@ -74,8 +30,6 @@ const filteredComponents = computed(() => {
 		}
 		return false;
 	});
-	
-	return uniqueComponents;
 });
 
 function toggleFavorite(id) {
@@ -104,11 +58,11 @@ function handleMoreInfo(item) {
   <div class="search-com-result">
     <!-- 1. Filtered Components -->
     <div 
-      v-if="filteredComponents?.length !== 0"
+      v-if="uniqueComponents?.length !== 0"
       class="dashboard"
     >
       <DashboardComponent
-        v-for="item in filteredComponents"
+        v-for="item in uniqueComponents"
         :key="`${item.index}-${item.city}`"
         :config="item"
         :info-btn="true"

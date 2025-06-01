@@ -1,13 +1,71 @@
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import SearchComResult from "../components/search/SearchComResult.vue";
 import SearchMapResult from "../components/search/SearchMapResult.vue";
 import MoreInfo from "../components/dialogs/MoreInfo.vue";
 import ReportIssue from "../components/dialogs/ReportIssue.vue";
+import { useContentStore } from "../store/contentStore";
+import { useSearchStore } from "../store/searchStore";
 import router from "../router";
+
+const contentStore = useContentStore();
+const searchStore = useSearchStore();
 
 // Tab 切換狀態
 const activeTab = ref('components');
+
+// 共同的篩選邏輯
+const baseFilteredComponents = computed(() => {
+	if (!contentStore.cityDashboard.components || !Array.isArray(contentStore.cityDashboard.components)) {
+		return [];
+	}
+	
+	return contentStore.cityDashboard.components.filter(component => {
+		// 城市過濾
+		if (searchStore.selectedCities.length > 0 && !searchStore.selectedCities.includes(component.city)) {
+			return false;
+		}
+		
+		// 主題過濾
+		if (searchStore.selectedTopics.length > 0) {
+			const selectedComponentIds = new Set();
+			
+			const citiesToSearch = searchStore.selectedCities.length > 0 
+				? searchStore.selectedCities 
+				: Array.from(contentStore.dashboards.keys());
+			
+			citiesToSearch.forEach(city => {
+				const cityDashboards = contentStore.dashboards.get(city);
+				if (cityDashboards && Array.isArray(cityDashboards)) {
+					searchStore.selectedTopics.forEach(topicName => {
+						const dashboard = cityDashboards.find(d => d.name === topicName);
+						if (dashboard && dashboard.components) {
+							dashboard.components.forEach(componentId => {
+								selectedComponentIds.add(componentId);
+							});
+						}
+					});
+				}
+			});
+			
+			if (!selectedComponentIds.has(component.id)) {
+				return false;
+			}
+		}
+		
+		// 部門過濾
+		if (searchStore.selectedDepartments.length > 0 && !searchStore.selectedDepartments.includes(component.source)) {
+			return false;
+		}
+		
+		// 空間資料過濾
+		if (searchStore.selectedMapData && !(component.map_config && component.map_config[0] !== null && component.map_config?.length > 0)) {
+			return false;
+		}
+		
+		return true;
+	});
+});
 
 function goToDashboard() {
 	router.push("/dashboard");
@@ -60,7 +118,7 @@ function switchTab(tab) {
         v-if="activeTab === 'components'"
         class="tab-content"
       >
-        <SearchComResult />
+        <SearchComResult :filtered-components="baseFilteredComponents" />
       </div>
 
       <!-- Map Tab -->
@@ -68,7 +126,7 @@ function switchTab(tab) {
         v-if="activeTab === 'map'"
         class="tab-content map-view"
       >
-        <SearchMapResult />
+        <SearchMapResult :filtered-components="baseFilteredComponents" />
       </div>
     </div>
     

@@ -196,8 +196,8 @@ router.beforeEach((to) => {
 	if (to.name === "component-info") {
 		contentStore.getCurrentComponentData(to.params.index, to.query.city);
 	}
-	// Clear the entire mapStore if the path doesn't start with /mapview
-	if (to.path.toLowerCase() !== "/mapview") {
+	// Clear the entire mapStore if the path doesn't start with /mapview or /search-result
+	if (to.path.toLowerCase() !== "/mapview" && to.path.toLowerCase() !== "/search-result") {
 		mapStore.clearEntireMap();
 	}
 	// Clear only map layers if the path starts with /mapview

@@ -90,11 +90,6 @@ const departmentTags = computed(() => {
 	}));
 });
 
-const handleClose = () => {
-	searchStore.closeSearchOffcanvas()
-	searchStore.clearAllFilters();
-};
-
 const toggleTopic = (topicName) => {
 	const index = localSelectedTopics.value.indexOf(topicName);
 	if (index > -1) {
@@ -150,6 +145,12 @@ const clearAllFilters = () => {
 	localSelectedMapData.value = false;
 	searchStore.clearAllFilters();
 };
+
+const handleClose = () => {
+	searchStore.closeSearchOffcanvas()
+	clearAllFilters()
+};
+
 
 const syncToStore = () => {
 	searchStore.selectedCities = [...localSelectedCities.value];
